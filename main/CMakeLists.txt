@@ -19,6 +19,7 @@ ExternalProject_Add(Adafruit_NeoPixel
   GIT_PROGRESS    1
   SOURCE_DIR      ${CMAKE_CURRENT_SOURCE_DIR}/components
 )
+
 # Edit following two lines to set component requirements (see docs)
 set(COMPONENT_REQUIRES )
 set(COMPONENT_PRIV_REQUIRES )
