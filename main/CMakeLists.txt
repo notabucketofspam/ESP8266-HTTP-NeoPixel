@@ -21,10 +21,13 @@ ExternalProject_Add(Adafruit_NeoPixel
 )
 
 # Edit following two lines to set component requirements (see docs)
-set(COMPONENT_REQUIRES )
+set(COMPONENT_REQUIRES html_gpio_core Adafruit_NeoPixel)
 set(COMPONENT_PRIV_REQUIRES )
 
 set(COMPONENT_SRCS "main.cpp")
-set(COMPONENT_ADD_INCLUDEDIRS "")
+set(COMPONENT_ADD_INCLUDEDIRS 
+  "../component/ESP8266-HTML-GPIO"
+  "../component/Adafruit_NeoPixel"
+)
 
 register_component()

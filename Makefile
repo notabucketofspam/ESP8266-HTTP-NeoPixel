@@ -3,7 +3,7 @@
 # project subdirectory.
 #
 
-PROJECT_NAME := ESP8266-remote-Neopixel
+PROJECT_NAME := ESP8266-remote-NeoPixel
 
 include $(IDF_PATH)/make/project.mk
 
