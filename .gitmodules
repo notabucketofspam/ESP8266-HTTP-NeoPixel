@@ -1,0 +1,3 @@
+[submodule "NeoPixel/components/Adafruit_NeoPixel_ESP8266_RTOS_SDK"]
+	path = NeoPixel/components/Adafruit_NeoPixel_ESP8266_RTOS_SDK
+	url = https://github.com/notabucketofspam/Adafruit_NeoPixel_ESP8266_RTOS_SDK.git
