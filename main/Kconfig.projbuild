@@ -1,7 +1,0 @@
-menu "Peripheral configuration"
-
-  config NEOPIXEL
-    bool "Enable Neopixel"
-    default n
-
-endmenu
