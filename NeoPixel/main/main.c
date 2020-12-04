@@ -2,13 +2,11 @@
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
 
+#ifdef __cplusplus
+extern "C" { void app_main(void); }
+#endif
 
-void app_main(void)
-{
-    int i = 0;
-    while (1) {
-        printf("[%d] Hello world!\n", i);
-        i++;
-        vTaskDelay(5000 / portTICK_PERIOD_MS);
-    }
+// TODO: make sure that anp_pinMode() doesn't interfere with the handshake pin
+
+void app_main(void) {
 }

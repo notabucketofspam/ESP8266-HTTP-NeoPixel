@@ -1,4 +1,4 @@
-# ESP8266-HTTP-Neopixel
+# ESP8266-HTTP-NeoPixel
 
 Interface for controlling a strip of Neopixel lights via a HTTP server hosting a HTML document.
 
@@ -9,7 +9,7 @@ Notes:
 - SPI is used for communication between the modules instead of the UART serial system. This is done so that
   - a, the serial lines do not interfere with each other,
   - b, high-speed communication may be retained,
-  - c, the two modules may be directly stacked on top of each other using tall female-to-male pin headers:
+  - c, the two modules may be directly stacked on top of each other using tall female-to-male pin headers
 
 Ideal use case: two Wemos D1 Mini modules and a perfboard shield utilizing the aforementioned stacking technique:
 
