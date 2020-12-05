@@ -12,6 +12,7 @@ extern "C" {
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
 #include "freertos/semphr.h"
+#include "freertos/event_groups.h"
 #include "freertos/queue.h"
 #include "freertos/stream_buffer.h"
 
@@ -19,13 +20,20 @@ extern "C" {
 #include "driver/gpio.h"
 #include "driver/spi.h"
 
+#include <inttypes.h>
+#include "esp_log.h"
+
 #include "hw_def.h"
 
 /*
- * These pass data from the HTTP server to the main SPI task
+ * Passes data between the HTTP server and the main SPI task
  */
 extern QueueHandle_t http_to_spi_queue_handle;
-extern StreamBufferHandle_t http_to_spi_stream_buffer_handle;
+/*
+ * For setting statuses between the HTTP task and the SPI task
+ * Used for things like letting the HTTP task know when it's safe to free message data memory
+ */
+extern EventGroupHandle_t http_and_spi_event_group_handle;
 /*
  * An easier way to set up SPI-specific things, so that app_main() doesn't get bloated and unreadable.
  * This function assumes a bunch of default values, but allows for Kconfig things to be set

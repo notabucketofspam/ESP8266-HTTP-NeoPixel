@@ -1,30 +1,25 @@
-#ifndef HW_DEF_H
-#define HW_DEF_H
+#ifndef NP_DEF_H
+#define NP_DEF_H
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-/*
- * Bits used by the HTTP and SPI event group
- */
-#define HW_SPI_TRANS_COMP BIT(0) // SPI transfer is complete; safe to free message data memory
-#define HW_MSG_MEM_FREED BIT(1) // Message data memory has been freed
 
 /*
  * Type of message in the queue
  */
-enum hw_message_type {
+enum np_message_type {
   NO_TYPE = 0, // Unused at present
-  BASIC_PATTERN_DATA, // Used in conjunction with hw_basic_pattern_data_t
+  BASIC_PATTERN_DATA, // Used in conjunction with np_basic_pattern_data_t
   DYNAMIC_PATTERN_DATA // Reads commands from a stream buffer and sends them to the NeoPixel device
 };
 /*
- * Patterns understood by the NeoPixel device via SPI
+ * Patterns understood by the LED strip device via SPI
  * These are selected on the HTML document
  * Most of the implementations on the NeoPixel device are stolen from the Adafruit_NeoPixel examples
  */
-enum hw_pattern {
+enum np_pattern {
   NO_PATTERN = 0, // Used to turn off the strip
   FILL_COLOR,
   THEATRE_CHASE,
@@ -33,18 +28,17 @@ enum hw_pattern {
 };
 /*
  * Contains information about the message, such as type and whatever
- * Useful for transmitting to the NeoPixel device more than anything
  */
-struct hw_message_metadata {
-  char name[16]; // Why this is important is beyond me, but I'm leaving it for now
-  enum hw_message_type type;
+struct np_message_metadata {
+  char name[16];
+  enum np_message_type type;
 };
 /*
- * A struct for assigning a pattern to a segment of the NeoPixel strip
+ * A struct for assigning a pattern to a segment of the LED strip
  * Note that it's possible to have different sections of the strip have different patterns,
  * so long as you send multiple queue messages in a row
  */
-struct hw_pattern_data {
+struct np_pattern_data {
   union {
     struct {
       uint32_t cmd: 3; // Unused at the moment
@@ -60,10 +54,10 @@ struct hw_pattern_data {
 /*
  * The message for communicating between the HTTP server and the SPI master task
  */
-struct hw_message {
-  struct hw_message_metadata *metadata;
+struct np_message {
+  struct np_message_metadata *metadata;
   union {
-    struct hw_pattern_data *pattern_data;
+    struct np_pattern_data *pattern_data;
     StreamBufferHandle_t *stream_buffer_handle;
   };
 };

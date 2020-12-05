@@ -81,6 +81,7 @@ menu "HTTP-WiFi configuration"
       default 1024
       help
         Used for dynamic patterns. Don't set it too low if doing complex things.
-        Keep in mind that SPI transfers are always 64-byte at a time.
+        Keep in mind that SPI transfers are always 64-byte at a time, so
+        please make this a multiple of 64 if you can.
   endmenu
 endmenu

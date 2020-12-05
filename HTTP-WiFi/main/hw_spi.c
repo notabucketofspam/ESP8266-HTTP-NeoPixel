@@ -25,6 +25,10 @@ extern "C" {
   .event_cb = NULL \
 }
 /*
+ * Useful for getting the number of data chunks needed to transmit a struct, for example
+ */
+#define HW_DATA_CHUNK_COUNT(x) ((sizeof(x) + 63) / 64)
+/*
  * Direction of SPI communication.
  * Pretty much only used for spi_master_transmit()
  */
@@ -58,16 +62,11 @@ static void IRAM_ATTR spi_master_send_length(uint32_t length);
  * Deals with situations when the handshake pin is raised
  */
 static void IRAM_ATTR gpio_isr_handler(void *arg);
+/*
+ * A debug function for printing the contents of a pattern data struct
+ */
+static void print_pattern_data(struct hw_pattern_data *pattern_data);
 
-void hw_setup_spi() {
-  spi_semaphore_handle = xSemaphoreCreateBinary();
-  gpio_config_t io_config = HW_GPIO_CONFIG_DEFAULT(CONFIG_HW_SPI_HANDSHAKE);
-  gpio_config(&io_config);
-  gpio_install_isr_service(0);
-  gpio_isr_handler_add(CONFIG_HW_SPI_HANDSHAKE, gpio_isr_handler, (void *) CONFIG_HW_SPI_HANDSHAKE);
-  spi_config_t spi_config = HW_SPI_CONFIG_DEFAULT(CONFIG_HW_SPI_CLK_DIV);
-  spi_init(HSPI_HOST, &spi_config);
-}
 static void IRAM_ATTR spi_master_transmit(enum spi_master_mode direction, uint32_t *data) {
   spi_trans_t transmission;
   uint16_t cmd;
@@ -130,33 +129,42 @@ static void IRAM_ATTR gpio_isr_handler(void *arg) {
     } // I don't actually know why this is important but whatever
   }
 }
-// TODO: make the transfers rely less on pointers with potentially-changing sizes
+static void print_pattern_data(struct hw_pattern_data *pattern_data) {
+  ESP_LOGI(__ESP_FILE__, "val: %"PRIu32, pattern_data->val);
+  ESP_LOGI(__ESP_FILE__, "delay: %"PRIu32, pattern_data->delay);
+  ESP_LOGI(__ESP_FILE__, "color: %"PRIu32, pattern_data->color);
+}
+void hw_setup_spi() {
+  spi_semaphore_handle = xSemaphoreCreateBinary();
+  gpio_config_t io_config = HW_GPIO_CONFIG_DEFAULT(CONFIG_HW_SPI_HANDSHAKE);
+  gpio_config(&io_config);
+  gpio_install_isr_service(0);
+  gpio_isr_handler_add(CONFIG_HW_SPI_HANDSHAKE, gpio_isr_handler, (void *) CONFIG_HW_SPI_HANDSHAKE);
+  spi_config_t spi_config = HW_SPI_CONFIG_DEFAULT(CONFIG_HW_SPI_CLK_DIV);
+  spi_init(HSPI_HOST, &spi_config);
+}
 void IRAM_ATTR hw_spi_master_write_task(void *arg) {
   // Divide by four because a uint32_t is 4-bytes, and 64-bytes is the max supported by ESP8266 SPI
   static uint32_t data_chunk[64 / 4];
   memset(data_chunk, 0x00, sizeof(data_chunk));
-  static struct hw_message *queue_receive_buffer;
-  memset(queue_receive_buffer, 0x00, sizeof(struct hw_message));
+  static struct hw_message *message_buffer;
   for (;;) {
     vTaskSuspend(NULL); // Suspend itself, wait for the HTTP task to send more messages and the resume command
+    ESP_LOGI(__ESP_FILE__, "Task resume");
     while (uxQueueMessagesWaiting(http_to_spi_queue_handle) > 0) {
-      xQueueReceive(http_to_spi_queue_handle, &queue_receive_buffer, portMAX_DELAY);
-      if (queue_receive_buffer->metadata->type == BASIC_PATTERN_DATA) {
-        // TODO: how does the other device know where the metadata stops and the pattern data starts?
-        // Does it just assume that it's at the 64-byte line? Is that safe? What if metadata is larger than 64-bytes?
-        // Does it divide it in half? Does it use sizeof(metadata)
+      memset(&message_buffer, 0x00, sizeof(struct hw_message *));
+      xQueueReceive(http_to_spi_queue_handle, &message_buffer, portMAX_DELAY);
+      if (message_buffer->metadata->type == BASIC_PATTERN_DATA) {
         xSemaphoreTake(spi_semaphore_handle, 0);
-        // Below: number of chunks to send, in case the metadata struct is larger than 64-bytes
-        static uint32_t data_chunk_count_metadata = (sizeof(struct hw_message_metadata) + 63) / 64;
-        // Same idea but for pattern data
-        static uint32_t data_chunk_count_pattern = (sizeof(struct hw_pattern_data) + 63) / 64;
+        // Below: number of chunks to send, in case the relevant struct is larger than 64-bytes
+        static uint32_t data_chunk_count_metadata = HW_DATA_CHUNK_COUNT(struct hw_message_metadata);
+        static uint32_t data_chunk_count_pattern = HW_DATA_CHUNK_COUNT(struct hw_pattern_data);
         spi_master_send_length((data_chunk_count_metadata + data_chunk_count_pattern) * sizeof(data_chunk));
         xSemaphoreTake(spi_semaphore_handle, portMAX_DELAY);
         // Send metadata, letting the NeoPixel device what else it's about to receive
         for (uint32_t data_index_metadata = 0; data_index_metadata < data_chunk_count_metadata; ++data_index_metadata) {
           // Explanation of all this is further down, as it's almost identical
-          memcpy(data_chunk, (struct hw_message_metadata *) (queue_receive_buffer->metadata) +
-            (data_index_metadata * sizeof(data_chunk)),
+          memcpy(data_chunk, message_buffer->metadata + (data_index_metadata * sizeof(data_chunk)),
             (size_t) fminf(sizeof(data_chunk), sizeof(struct hw_message_metadata)) -
             (data_index_metadata * sizeof(data_chunk)));
           spi_master_transmit(SPI_WRITE, data_chunk);
@@ -167,8 +175,7 @@ void IRAM_ATTR hw_spi_master_write_task(void *arg) {
         for (uint32_t data_index_pattern = 0; data_index_pattern < data_chunk_count_pattern; ++data_index_pattern) {
           // Copy the minimum necessary data to data_chunk using fminf(),
           // important both when the pattern data struct is greater than or less than 64-bytes
-          memcpy(data_chunk, (struct hw_pattern_data *) (queue_receive_buffer->data) +
-            (data_index_pattern * sizeof(data_chunk)),
+          memcpy(data_chunk, message_buffer->pattern_data + (data_index_pattern * sizeof(data_chunk)),
             (size_t) fminf(sizeof(data_chunk), sizeof(struct hw_pattern_data)) -
             (data_index_pattern * sizeof(data_chunk)));
           spi_master_transmit(SPI_WRITE, data_chunk); // Write the actual data in small snippets
@@ -176,7 +183,12 @@ void IRAM_ATTR hw_spi_master_write_task(void *arg) {
           memset(data_chunk, 0x00, sizeof(data_chunk)); // Clear data_chunk
         }
         spi_master_send_length((uint32_t) 0); // Clear the status register on the other device
-      } else if (queue_receive_buffer->metadata->type == DYNAMIC_PATTERN_DATA) {
+        print_pattern_data(message_buffer->pattern_data);
+        xEventGroupSetBits(http_and_spi_event_group_handle, HW_SPI_TRANS_COMP);
+        ESP_LOGI(__ESP_FILE__, "End transmission");
+        xEventGroupWaitBits(http_and_spi_event_group_handle, HW_MSG_MEM_FREED, pdTRUE, pdTRUE, portMAX_DELAY);
+        ESP_LOGI(__ESP_FILE__, "Memory freed");
+      } else if (message_buffer->metadata->type == DYNAMIC_PATTERN_DATA) {
         #if CONFIG_HW_ENABLE_DYNAMIC_PATTERN
           // TODO: actually implement this... eventually
           // Design: send header telling NeoPixel that it's about to get some dynamic pattern data,

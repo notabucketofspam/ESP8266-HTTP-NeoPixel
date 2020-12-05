@@ -1,14 +1,56 @@
-# put here your custom config value
-menu "WiFi Configuration"
-config ESP_WIFI_SSID
-    string "WiFi SSID"
-    default "myssid"
-    help
-	SSID (network name) for the example to connect to.
-
-config ESP_WIFI_PASSWORD
-    string "WiFi Password"
-    default "mypassword"
-    help
-	WiFi password (WPA or WPA2) for the example to use.
+menu "NeoPixel configuration"
+  menu "LED configuration"
+    config NP_NEOPIXEL_PIN
+      int "NeoPixel pin"
+      range 0 16
+      default 4
+      help
+        Pin used for the NeoPixel strip. Adafruit recommends using a PWM pin,
+        which is pretty much limited to GPIO4 since the rest are used for SPI.
+        Only one strand is supported at this time.
+    config NP_NEOPIXEL_COUNT
+      int "LED count"
+        range 1 4096
+        default 30
+        help
+          Number of pixels on the strand. Due to the single-strand limit, don't 
+          set this too high, or else signal degredation will occur.
+  endmenu
+  menu "SPI configuration"
+    config NP_SPI_HANDSHAKE
+      int "SPI handshake pin"
+      range 0 16
+      default 5
+      help
+        This pin connects to the handshake on the HTTP-WiFi device.
+        Must be the same between the two if the modules are stacked.
+  endmenu
+  menu "FreeRTOS configuration"
+    config NP_QUEUE_SIZE
+      int "SPI to ANP queue size"
+      range 8 256
+      default 16
+      help
+        Maximum number of light-changing commands and whatnot to be able to be received 
+        from the HTTP-WiFi device at a time. Dynamic patterns use the stream
+        buffer for commands instead, but still need at least one queue message 
+        to get started.
+    menuconfig NP_ENABLE_DYNAMIC_PATTERN
+      bool "Enable dynamic pattern support"
+      default n
+      help
+        Receive custom commands directly from the HTTP-WiFi device, allowing for much
+        more fine-grained control.
+        Please note that this is very expensive in all regards, as well as 
+        being experimental / unstable in general.
+    config NP_STREAM_BUFFER_SIZE
+      depends on NP_ENABLE_DYNAMIC_PATTERN
+      int "SPI to ANP stream buffer size"
+      range 256 8192
+      default 1024
+      help
+        Used for dynamic patterns. Don't set it too low if doing complex things.
+        Keep in mind that SPI transfers are always 64-byte at a time, so
+        please make this a multiple of 64 if you can.
+  endmenu
 endmenu
