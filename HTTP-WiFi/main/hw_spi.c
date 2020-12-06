@@ -5,14 +5,15 @@ extern "C" {
 #endif
 
 /*
- * Sets up the GPIO pin as a rising-edge interrupt with the pin number as a parameter
+ * Sets up the GPIO pin as a falling-edge interrupt with the pin number as a parameter
+ * Change to GPIO_INTR_POSEDGE, maybe
  */
 #define HW_GPIO_CONFIG_DEFAULT(x) { \
   .pin_bit_mask = BIT(x), \
   .mode = GPIO_MODE_INPUT, \
   .pull_up_en = GPIO_PULLUP_DISABLE, \
   .pull_down_en = GPIO_PULLDOWN_DISABLE, \
-  .intr_type = GPIO_INTR_POSEDGE \
+  .intr_type = GPIO_INTR_NEGEDGE \
 }
 /*
  * Sets up SPI as master with clk_div selected as an input
@@ -25,9 +26,13 @@ extern "C" {
   .event_cb = NULL \
 }
 /*
- * Useful for getting the number of data chunks needed to transmit a struct, for example
+ * Max size of a single SPI transfer on the ESP8266
  */
-#define HW_DATA_CHUNK_COUNT(x) ((sizeof(x) + 63) / 64)
+#define HW_DATA_CHUNK_SIZE (64)
+/*
+ * Useful for getting the minimum number of data chunks needed to transmit a struct, for example
+ */
+#define HW_DATA_CHUNK_COUNT(x) ((sizeof(x) + (HW_DATA_CHUNK_SIZE - 1)) / HW_DATA_CHUNK_SIZE)
 /*
  * Direction of SPI communication.
  * Pretty much only used for spi_master_transmit()
@@ -37,11 +42,6 @@ enum spi_master_mode {
   SPI_WRITE,
   SPI_READ
 };
-/*
- * A thing for synchronizing between the GPIO ISR and FreeRTOS tasks.
- * To be honest, I don't exactly know what it does, but it seems important.
- */
-static SemaphoreHandle_t spi_semaphore_handle = NULL;
 /*
  * Send or receive data as the master
  * Assumes that the data length is 64-byte (the maximum allowed by the ESP8266 in a single transmission),
@@ -53,11 +53,6 @@ static void IRAM_ATTR spi_master_transmit(enum spi_master_mode direction, uint32
  * I don't know how this is useful since spi_master_transmit() assumes a 64-byte length every time
  */
 static void IRAM_ATTR spi_master_send_length(uint32_t length);
-/*
- * Get the length from the NeoPixel device's status register of its upcoming data transmission
- * Currently unused because transmission is strictly one-way
- */
-//static uint32_t IRAM_ATTR spi_master_get_length(void);
 /*
  * Deals with situations when the handshake pin is raised
  */
@@ -76,12 +71,12 @@ static void IRAM_ATTR spi_master_transmit(enum spi_master_mode direction, uint32
   switch (direction) {
     case SPI_WRITE:
       cmd = SPI_MASTER_WRITE_DATA_TO_SLAVE_CMD;
-      transmission.bits.mosi = 8 * 64; // 8-bit by 64-byte
+      transmission.bits.mosi = 8 * HW_DATA_CHUNK_SIZE; // 8-bit by 64-byte
       transmission.mosi = data; // Not &data because data is already a pointer
       break;
     case SPI_READ:
       cmd = SPI_MASTER_READ_DATA_FROM_SLAVE_CMD;
-      transmission.bits.miso = 8 * 64;
+      transmission.bits.miso = 8 * HW_DATA_CHUNK_SIZE;
       transmission.miso = data;
       break;
     default:
@@ -106,27 +101,11 @@ static void IRAM_ATTR spi_master_send_length(uint32_t length) {
   transmission.mosi = &length;
   spi_trans(HSPI_HOST, &transmission);
 }
-//static uint32_t IRAM_ATTR spi_master_get_length(void) {
-//  spi_trans_t transmission;
-//  uint32_t length;
-//  uint16_t cmd = SPI_MASTER_READ_STATUS_FROM_SLAVE_CMD;
-//  memset(&transmission, 0x00, sizeof(transmission));
-//  transmission.bits.val = 0;
-//  transmission.cmd = &cmd;
-//  transmission.addr = NULL;
-//  transmission.miso = &length; // spi_trans_t expects a pointer here
-//  transmission.bits.cmd = 8 * 1;
-//  transmission.bits.miso = 8 * 4;
-//  spi_trans(HSPI_HOST, &transmission);
-//  return length;
-//}
 static void IRAM_ATTR gpio_isr_handler(void *arg) {
   BaseType_t xHigherPriorityTaskWoken = pdFALSE;
-  if ((int)arg == (int)CONFIG_HW_SPI_HANDSHAKE) {
-    xSemaphoreGiveFromISR(spi_semaphore_handle, &xHigherPriorityTaskWoken);
-    if (xHigherPriorityTaskWoken == pdTRUE) { // If there's another task waiting...
-      taskYIELD(); // ... temporarily stop the current task (hw_spi_master_write_task()) and let another run
-    } // I don't actually know why this is important but whatever
+  vTaskNotifyGiveFromISR(spi_write_task_handle, &xHigherPriorityTaskWoken);
+  if (xHigherPriorityTaskWoken == pdTRUE) {
+    portYIELD_FROM_ISR();
   }
 }
 static void print_pattern_data(struct hw_pattern_data *pattern_data) {
@@ -134,33 +113,33 @@ static void print_pattern_data(struct hw_pattern_data *pattern_data) {
   ESP_LOGI(__ESP_FILE__, "delay: %"PRIu32, pattern_data->delay);
   ESP_LOGI(__ESP_FILE__, "color: %"PRIu32, pattern_data->color);
 }
-void hw_setup_spi() {
-  spi_semaphore_handle = xSemaphoreCreateBinary();
+void hw_setup_spi(void) {
+//  spi_semaphore_handle = xSemaphoreCreateBinary();
   gpio_config_t io_config = HW_GPIO_CONFIG_DEFAULT(CONFIG_HW_SPI_HANDSHAKE);
   gpio_config(&io_config);
   gpio_install_isr_service(0);
-  gpio_isr_handler_add(CONFIG_HW_SPI_HANDSHAKE, gpio_isr_handler, (void *) CONFIG_HW_SPI_HANDSHAKE);
+  gpio_isr_handler_add(CONFIG_HW_SPI_HANDSHAKE, gpio_isr_handler, NULL);
   spi_config_t spi_config = HW_SPI_CONFIG_DEFAULT(CONFIG_HW_SPI_CLK_DIV);
   spi_init(HSPI_HOST, &spi_config);
 }
 void IRAM_ATTR hw_spi_master_write_task(void *arg) {
   // Divide by four because a uint32_t is 4-bytes, and 64-bytes is the max supported by ESP8266 SPI
-  static uint32_t data_chunk[64 / 4];
+  static uint32_t data_chunk[HW_DATA_CHUNK_SIZE / 4];
   memset(data_chunk, 0x00, sizeof(data_chunk));
   static struct hw_message *message_buffer;
   for (;;) {
-    vTaskSuspend(NULL); // Suspend itself, wait for the HTTP task to send more messages and the resume command
+    xEventGroupWaitBits(http_and_spi_event_group_handle, HW_BIT_SPI_TRANS_START, pdTRUE, pdTRUE, portMAX_DELAY);
     ESP_LOGI(__ESP_FILE__, "Task resume");
     while (uxQueueMessagesWaiting(http_to_spi_queue_handle) > 0) {
       memset(&message_buffer, 0x00, sizeof(struct hw_message *));
       xQueueReceive(http_to_spi_queue_handle, &message_buffer, portMAX_DELAY);
       if (message_buffer->metadata->type == BASIC_PATTERN_DATA) {
-        xSemaphoreTake(spi_semaphore_handle, 0);
+        ulTaskNotifyTake(pdTRUE, 0);
         // Below: number of chunks to send, in case the relevant struct is larger than 64-bytes
         static uint32_t data_chunk_count_metadata = HW_DATA_CHUNK_COUNT(struct hw_message_metadata);
         static uint32_t data_chunk_count_pattern = HW_DATA_CHUNK_COUNT(struct hw_pattern_data);
         spi_master_send_length((data_chunk_count_metadata + data_chunk_count_pattern) * sizeof(data_chunk));
-        xSemaphoreTake(spi_semaphore_handle, portMAX_DELAY);
+        ulTaskNotifyTake(pdTRUE, portMAX_DELAY);
         // Send metadata, letting the NeoPixel device what else it's about to receive
         for (uint32_t data_index_metadata = 0; data_index_metadata < data_chunk_count_metadata; ++data_index_metadata) {
           // Explanation of all this is further down, as it's almost identical
@@ -168,7 +147,7 @@ void IRAM_ATTR hw_spi_master_write_task(void *arg) {
             (size_t) fminf(sizeof(data_chunk), sizeof(struct hw_message_metadata)) -
             (data_index_metadata * sizeof(data_chunk)));
           spi_master_transmit(SPI_WRITE, data_chunk);
-          xSemaphoreTake(spi_semaphore_handle, portMAX_DELAY);
+          ulTaskNotifyTake(pdTRUE, portMAX_DELAY);
           memset(data_chunk, 0x00, sizeof(data_chunk));
         }
         // Send the actual pattern data
@@ -179,15 +158,14 @@ void IRAM_ATTR hw_spi_master_write_task(void *arg) {
             (size_t) fminf(sizeof(data_chunk), sizeof(struct hw_pattern_data)) -
             (data_index_pattern * sizeof(data_chunk)));
           spi_master_transmit(SPI_WRITE, data_chunk); // Write the actual data in small snippets
-          xSemaphoreTake(spi_semaphore_handle, portMAX_DELAY); // wait for the NeoPixel device again
+          ulTaskNotifyTake(pdTRUE, portMAX_DELAY);
           memset(data_chunk, 0x00, sizeof(data_chunk)); // Clear data_chunk
         }
         spi_master_send_length((uint32_t) 0); // Clear the status register on the other device
         print_pattern_data(message_buffer->pattern_data);
-        xEventGroupSetBits(http_and_spi_event_group_handle, HW_SPI_TRANS_COMP);
+        xEventGroupSetBits(http_and_spi_event_group_handle, HW_BIT_SPI_TRANS_END);
         ESP_LOGI(__ESP_FILE__, "End transmission");
-        xEventGroupWaitBits(http_and_spi_event_group_handle, HW_MSG_MEM_FREED, pdTRUE, pdTRUE, portMAX_DELAY);
-        ESP_LOGI(__ESP_FILE__, "Memory freed");
+        xEventGroupWaitBits(http_and_spi_event_group_handle, HW_BIT_HTTP_MSG_MEM_FREE, pdTRUE, pdTRUE, portMAX_DELAY);
       } else if (message_buffer->metadata->type == DYNAMIC_PATTERN_DATA) {
         #if CONFIG_HW_ENABLE_DYNAMIC_PATTERN
           // TODO: actually implement this... eventually

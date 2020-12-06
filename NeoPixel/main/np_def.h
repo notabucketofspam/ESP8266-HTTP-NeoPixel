@@ -5,6 +5,10 @@
 extern "C" {
 #endif
 
+#include <stdint.h>
+
+#include "freertos/FreeRTOS.h"
+#include "freertos/stream_buffer.h"
 
 /*
  * Type of message in the queue
@@ -66,4 +70,4 @@ struct np_message {
 }
 #endif
 
-#endif
+#endif // NP_DEF_H

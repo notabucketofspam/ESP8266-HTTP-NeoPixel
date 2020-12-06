@@ -1,8 +1,11 @@
+/*
+ * NP = NeoPixel
+ * Like the HTTP-WiFi counterpart, most of this is stolen from examples
+ */
 #include <stdio.h>
 
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
-#include "freertos/semphr.h"
 #include "freertos/queue.h"
 #include "freertos/stream_buffer.h"
 
@@ -14,9 +17,13 @@ extern "C" { void app_main(void); }
 #endif
 
 /*
- * Below is a list of handles for the running various tasks / queues / etc
+ * Task handles
  */
 TaskHandle_t spi_read_task_handle = NULL;
+TaskHandle_t anp_strip_task_handle = NULL;
+/*
+ * Other handles
+ */
 QueueHandle_t spi_to_anp_queue_handle = NULL;
 StreamBufferHandle_t spi_to_anp_stream_buffer_handle = NULL;
 

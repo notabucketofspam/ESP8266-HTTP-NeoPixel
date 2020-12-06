@@ -10,6 +10,32 @@ menu "HTTP-WiFi configuration"
       default "mypassword"
       help
         WiFi password (WPA or WPA2) to use.
+    menuconfig HW_STATIC_IP_ADDR
+      bool "Enable static IP address"
+      default y
+      help
+        Useful for finding the HTTP-WiFi device on a large network.
+        Make sure to reserve its MAC on your access point as well.
+    config HW_IP_ADDR_1
+      depends on HW_STATIC_IP_ADDR
+      int "IP address part 1"
+      range 0 255
+      default 192
+    config HW_IP_ADDR_2
+      depends on HW_STATIC_IP_ADDR
+      int "IP address part 2"
+      range 0 255
+      default 168
+    config HW_IP_ADDR_3
+      depends on HW_STATIC_IP_ADDR
+      int "IP address part 3"
+      range 0 255
+      default 1
+    config HW_IP_ADDR_4
+      depends on HW_STATIC_IP_ADDR
+      int "IP address part 4"
+      range 0 255
+      default 2
   endmenu
   menu "SPI configuration"
     config HW_SPI_HANDSHAKE

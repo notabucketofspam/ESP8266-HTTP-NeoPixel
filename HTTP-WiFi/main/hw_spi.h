@@ -5,13 +5,12 @@
 extern "C" {
 #endif
 
-#include <stdbool.h>
 #include <string.h>
 #include <math.h>
+#include <inttypes.h>
 
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
-#include "freertos/semphr.h"
 #include "freertos/event_groups.h"
 #include "freertos/queue.h"
 #include "freertos/stream_buffer.h"
@@ -19,8 +18,6 @@ extern "C" {
 #include "esp_attr.h"
 #include "driver/gpio.h"
 #include "driver/spi.h"
-
-#include <inttypes.h>
 #include "esp_log.h"
 
 #include "hw_def.h"
@@ -35,10 +32,14 @@ extern QueueHandle_t http_to_spi_queue_handle;
  */
 extern EventGroupHandle_t http_and_spi_event_group_handle;
 /*
+ * Used for unblocking the SPI write task after waiting for the GPIO interrupt
+ */
+extern TaskHandle_t spi_write_task_handle;
+/*
  * An easier way to set up SPI-specific things, so that app_main() doesn't get bloated and unreadable.
  * This function assumes a bunch of default values, but allows for Kconfig things to be set
  */
-void hw_setup_spi();
+void hw_setup_spi(void);
 /*
  * Main task for sending data to the NeoPixel device.
  * Automatically suspends itself upon writing, and can only be resumed by the HTTP task.
@@ -51,4 +52,4 @@ void IRAM_ATTR hw_spi_master_write_task(void *arg);
 }
 #endif
 
-#endif /* HW_SPI_H */
+#endif // HW_SPI_H

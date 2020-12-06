@@ -5,14 +5,12 @@
 extern "C" {
 #endif
 
-#include <stdbool.h>
 #include <string.h>
 #include <math.h>
+#include <inttypes.h>
 
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
-#include "freertos/semphr.h"
-#include "freertos/event_groups.h"
 #include "freertos/queue.h"
 #include "freertos/stream_buffer.h"
 
@@ -20,8 +18,6 @@ extern "C" {
 #include "driver/gpio.h"
 #include "driver/spi.h"
 #include "driver/hspi_logic_layer.h"
-
-#include <inttypes.h>
 #include "esp_log.h"
 
 #include "np_def.h"
@@ -32,13 +28,13 @@ extern "C" {
 extern QueueHandle_t spi_to_anp_queue_handle;
 extern StreamBufferHandle_t spi_to_anp_stream_buffer_handle;
 /*
- * This is used to resume the SPI read task, which remains suspended until a data transfer is completed
+ * Used for unblocking the task when need be, instead of a binary semaphore
  */
 extern TaskHandle_t spi_read_task_handle;
 /*
  *  Saves a lot of headache in app_main()
  */
-void np_setup_spi();
+void np_setup_spi(void);
 /*
  * Main task for receiving data from the HTTP-WiFi device.
  */
@@ -48,4 +44,4 @@ void IRAM_ATTR np_spi_slave_read_task(void *arg);
 }
 #endif
 
-#endif
+#endif // NP_SPI_H

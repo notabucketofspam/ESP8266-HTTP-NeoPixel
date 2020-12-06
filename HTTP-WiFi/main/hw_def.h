@@ -5,11 +5,18 @@
 extern "C" {
 #endif
 
+#include <stdint.h>
+
+#include "freertos/FreeRTOS.h"
+#include "freertos/stream_buffer.h"
+
 /*
  * Bits used by the HTTP and SPI event group
  */
-#define HW_SPI_TRANS_COMP BIT(0) // SPI transfer is complete; safe to free message data memory
-#define HW_MSG_MEM_FREED BIT(1) // Message data memory has been freed
+#define HW_BIT_SPI_TRANS_END BIT(0) // SPI transfer is complete; safe to free message data memory
+#define HW_BIT_HTTP_MSG_MEM_FREE BIT(1) // Message data memory from the HTTP task has been freed
+#define HW_BIT_SPI_TRANS_START BIT(2) // Ready to start SPI transfer
+#define HW_BIT_SPI_TRANS_CONTINUE BIT(3) // Intermediate block in SPI transfer, after waiting for the GPIO interrupt
 
 /*
  * Type of message in the queue
@@ -72,4 +79,4 @@ struct hw_message {
 }
 #endif
 
-#endif
+#endif // HW_DEF_H
