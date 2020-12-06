@@ -5,6 +5,7 @@ HTTP-WiFi/eclipse_make.py
 HTTP-WiFi/build/
 HTTP-WiFi/sdkconfig
 HTTP-WiFi/sdkconfig.old
+HTTP-WiFi/util
 NeoPixel/.settings/
 NeoPixel/.cproject
 NeoPixel/.project
@@ -12,3 +13,4 @@ NeoPixel/eclipse_make.py
 NeoPixel/build/
 NeoPixel/sdkconfig
 NeoPixel/sdkconfig.old
+NeoPixel/util

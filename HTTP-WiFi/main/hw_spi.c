@@ -134,38 +134,41 @@ void IRAM_ATTR hw_spi_master_write_task(void *arg) {
       memset(&message_buffer, 0x00, sizeof(struct hw_message *));
       xQueueReceive(http_to_spi_queue_handle, &message_buffer, portMAX_DELAY);
       if (message_buffer->metadata->type == BASIC_PATTERN_DATA) {
-        ulTaskNotifyTake(pdTRUE, 0);
-        // Below: number of chunks to send, in case the relevant struct is larger than 64-bytes
-        static uint32_t data_chunk_count_metadata = HW_DATA_CHUNK_COUNT(struct hw_message_metadata);
-        static uint32_t data_chunk_count_pattern = HW_DATA_CHUNK_COUNT(struct hw_pattern_data);
-        spi_master_send_length((data_chunk_count_metadata + data_chunk_count_pattern) * sizeof(data_chunk));
-        ulTaskNotifyTake(pdTRUE, portMAX_DELAY);
-        // Send metadata, letting the NeoPixel device what else it's about to receive
-        for (uint32_t data_index_metadata = 0; data_index_metadata < data_chunk_count_metadata; ++data_index_metadata) {
-          // Explanation of all this is further down, as it's almost identical
-          memcpy(data_chunk, message_buffer->metadata + (data_index_metadata * sizeof(data_chunk)),
-            (size_t) fminf(sizeof(data_chunk), sizeof(struct hw_message_metadata)) -
-            (data_index_metadata * sizeof(data_chunk)));
-          spi_master_transmit(SPI_WRITE, data_chunk);
+        #if CONFIG_HW_ENABLE_BASIC_PATTERN
+          ulTaskNotifyTake(pdTRUE, 0);
+          // Below: number of chunks to send, in case the relevant struct is larger than 64-bytes
+          static uint32_t data_chunk_count_metadata = HW_DATA_CHUNK_COUNT(struct hw_message_metadata);
+          static uint32_t data_chunk_count_pattern = HW_DATA_CHUNK_COUNT(struct hw_pattern_data);
+          spi_master_send_length((data_chunk_count_metadata + data_chunk_count_pattern) * sizeof(data_chunk));
           ulTaskNotifyTake(pdTRUE, portMAX_DELAY);
-          memset(data_chunk, 0x00, sizeof(data_chunk));
-        }
-        // Send the actual pattern data
-        for (uint32_t data_index_pattern = 0; data_index_pattern < data_chunk_count_pattern; ++data_index_pattern) {
-          // Copy the minimum necessary data to data_chunk using fminf(),
-          // important both when the pattern data struct is greater than or less than 64-bytes
-          memcpy(data_chunk, message_buffer->pattern_data + (data_index_pattern * sizeof(data_chunk)),
-            (size_t) fminf(sizeof(data_chunk), sizeof(struct hw_pattern_data)) -
-            (data_index_pattern * sizeof(data_chunk)));
-          spi_master_transmit(SPI_WRITE, data_chunk); // Write the actual data in small snippets
-          ulTaskNotifyTake(pdTRUE, portMAX_DELAY);
-          memset(data_chunk, 0x00, sizeof(data_chunk)); // Clear data_chunk
-        }
-        spi_master_send_length((uint32_t) 0); // Clear the status register on the other device
-        print_pattern_data(message_buffer->pattern_data);
-        xEventGroupSetBits(http_and_spi_event_group_handle, HW_BIT_SPI_TRANS_END);
-        ESP_LOGI(__ESP_FILE__, "End transmission");
-        xEventGroupWaitBits(http_and_spi_event_group_handle, HW_BIT_HTTP_MSG_MEM_FREE, pdTRUE, pdTRUE, portMAX_DELAY);
+          // Send metadata, letting the NeoPixel device what else it's about to receive
+          for (uint32_t data_index_metadata = 0; data_index_metadata < data_chunk_count_metadata;
+            ++data_index_metadata) {
+            // Explanation of all this is further down, as it's almost identical
+            memcpy(data_chunk, message_buffer->metadata + (data_index_metadata * sizeof(data_chunk)),
+              (size_t) fminf(sizeof(data_chunk), sizeof(struct hw_message_metadata)) -
+              (data_index_metadata * sizeof(data_chunk)));
+            spi_master_transmit(SPI_WRITE, data_chunk);
+            ulTaskNotifyTake(pdTRUE, portMAX_DELAY);
+            memset(data_chunk, 0x00, sizeof(data_chunk));
+          }
+          // Send the actual pattern data
+          for (uint32_t data_index_pattern = 0; data_index_pattern < data_chunk_count_pattern; ++data_index_pattern) {
+            // Copy the minimum necessary data to data_chunk using fminf(),
+            // important both when the pattern data struct is greater than or less than 64-bytes
+            memcpy(data_chunk, message_buffer->pattern_data + (data_index_pattern * sizeof(data_chunk)),
+              (size_t) fminf(sizeof(data_chunk), sizeof(struct hw_pattern_data)) -
+              (data_index_pattern * sizeof(data_chunk)));
+            spi_master_transmit(SPI_WRITE, data_chunk); // Write the actual data in small snippets
+            ulTaskNotifyTake(pdTRUE, portMAX_DELAY);
+            memset(data_chunk, 0x00, sizeof(data_chunk)); // Clear data_chunk
+          }
+          spi_master_send_length((uint32_t) 0); // Clear the status register on the other device
+          print_pattern_data(message_buffer->pattern_data);
+          xEventGroupSetBits(http_and_spi_event_group_handle, HW_BIT_SPI_TRANS_END);
+          ESP_LOGI(__ESP_FILE__, "End transmission");
+          xEventGroupWaitBits(http_and_spi_event_group_handle, HW_BIT_HTTP_MSG_MEM_FREE, pdTRUE, pdTRUE, portMAX_DELAY);
+        #endif
       } else if (message_buffer->metadata->type == DYNAMIC_PATTERN_DATA) {
         #if CONFIG_HW_ENABLE_DYNAMIC_PATTERN
           // TODO: actually implement this... eventually
