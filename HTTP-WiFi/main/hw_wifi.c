@@ -4,7 +4,7 @@
 extern "C" {
 #endif
 
-void hw_setup_wifi(void) {
+void vHwSetupWifi(void) {
 
 }
 

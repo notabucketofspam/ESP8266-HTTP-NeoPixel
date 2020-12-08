@@ -29,9 +29,9 @@ extern "C" {
 /*
  * Type of message in the queue
  */
-enum hw_message_type {
+enum xHwMessageType {
   NO_TYPE = 0, // Unused at present
-  STATIC_PATTERN_DATA, // Used in conjunction with hw_basic_pattern_data_t
+  STATIC_PATTERN_DATA, // Used in conjunction with struct xHwStaticData
   DYNAMIC_PATTERN_DATA // Reads commands from a stream buffer and sends them to the NeoPixel device
 };
 /*
@@ -39,7 +39,7 @@ enum hw_message_type {
  * These are selected on the HTML document
  * Most of the implementations on the NeoPixel device are stolen from the Adafruit_NeoPixel examples
  */
-enum hw_pattern {
+enum xHwPattern {
   NO_PATTERN = 0, // Used to turn off the strip
   FILL_COLOR,
   THEATRE_CHASE,
@@ -50,54 +50,54 @@ enum hw_pattern {
  * Contains information about the message, such as type and whatever
  * Useful for transmitting to the NeoPixel device more than anything
  */
-struct hw_message_metadata {
-  char name[16]; // Why this is important is beyond me, but I'm leaving it for now
-  enum hw_message_type type;
+struct xHwMessageMetadata {
+  char pcName[16]; // Why this is important is beyond me, but I'm leaving it for now
+  enum xHwMessageType xType;
 };
 /*
  * A struct for assigning a pattern to a segment of the NeoPixel strip
  * Note that it's possible to have different sections of the strip have different patterns,
  * so long as you send multiple queue messages in a row
  */
-struct hw_pattern_data {
+struct xHwStaticData {
   union {
     struct {
-      uint32_t cmd: 3; // Unused at the moment
-      uint32_t pattern: 5;
-      uint32_t pixel_index_start: 12; // Inclusive, since it's zero-indexed
-      uint32_t pixel_index_end: 12; // Also inclusive for the same reason
+      uint32_t bCmd: 3; // Unused at the moment
+      uint32_t bPattern: 5;
+      uint32_t bPixelIndexStart: 12; // Inclusive, since it's zero-indexed
+      uint32_t bPixelIndexEnd: 12; // Also inclusive for the same reason
     };
-    uint32_t val; // Fill for the union; usually just set this to zero to clear it
+    uint32_t bVal; // Fill for the union; usually just set this to zero to clear it
   };
-  uint32_t delay; // In milliseconds; used to control the speed of effects
-  uint32_t color; // Mostly used for fill color and whatnot
+  uint32_t ulDelay; // In milliseconds; used to control the speed of effects
+  uint32_t ulColor; // Mostly used for fill color and whatnot
 };
 /*
  * Packed structure for transferring dynamic pattern data
  */
-struct hw_dynamic_data {
-  union { // Done to at least partially match the layout of hw_pattern_data
+struct xHwDynamicData {
+  union { // Done to at least partially match the layout of xHwStaticData
     struct {
-      uint16_t cmd: 3;
-      uint16_t pattern: 1;
-      uint16_t pixel_index: 12;
+      uint16_t bCmd: 3;
+      uint16_t bPattern: 1;
+      uint16_t bPixelIndex: 12;
     };
-    uint16_t val;
+    uint16_t bVal;
   };
-  uint32_t color; // This could've been 24-bit but then that would've negated RGBW support
+  uint32_t ulColor; // This could've been 24-bit but then that would've negated RGBW support
 };
 /*
  * The message for communicating between the HTTP server and the SPI master task
  */
-struct hw_message {
-  struct hw_message_metadata *metadata;
+struct xHwMessage {
+  struct xHwMessageMetadata *pxMetadata;
   union {
-    struct hw_pattern_data *pattern_data;
-    struct {
-      struct hw_pattern_data **pattern_data_array;
-      uint32_t pattern_data_array_length;
-    };
-    StreamBufferHandle_t *xStreamBufferHandle;
+//    struct xHwStaticData *pattern_data;
+//    struct {
+//      struct xHwStaticData **pattern_data_array;
+//      uint32_t pattern_data_array_length;
+//    };
+    StreamBufferHandle_t *pxStreamBufferHandle;
   };
 };
 

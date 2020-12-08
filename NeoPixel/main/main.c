@@ -6,6 +6,7 @@
 
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
+#include "freertos/event_groups.h"
 #include "freertos/queue.h"
 #include "freertos/stream_buffer.h"
 
@@ -20,23 +21,24 @@ extern "C" { void app_main(void); }
 /*
  * Task handles
  */
-TaskHandle_t spi_read_task_handle = NULL;
-TaskHandle_t anp_strip_task_handle = NULL;
+TaskHandle_t xSpiReadTaskHandle = NULL;
+TaskHandle_t xAnpStripTaskHandle = NULL;
 /*
  * Other handles
  */
 QueueHandle_t xSpiToAnpQueueHandle = NULL;
+EventGroupHandle_t xSpiAndAnpEventGroupHandle = NULL;
 StreamBufferHandle_t xSpiToAnpStreamBufferHandle = NULL;
 
 // TODO: make sure that anp_pinMode() doesn't interfere with the handshake pin
 
 void app_main(void) {
-  xSpiToAnpQueueHandle = xQueueCreate(CONFIG_NP_QUEUE_SIZE, sizeof(struct np_message_t *));
+  xSpiToAnpQueueHandle = xQueueCreate(CONFIG_NP_QUEUE_SIZE, sizeof(struct xNpMessage *));
   #if CONFIG_NP_ENABLE_DYNAMIC_PATTERN
     xSpiToAnpStreamBufferHandle = xStreamBufferCreate(CONFIG_NP_STREAM_BUFFER_SIZE, NP_DATA_CHUNK_SIZE);
   #endif
-  np_setup_spi();
-//  ESP_LOGI(__ESP_FILE__, "POINT A");
-  xTaskCreate(np_spi_slave_read_task, "spi_task", 2048, NULL, 4, &spi_read_task_handle);
-//  ESP_LOGI(__ESP_FILE__, "POINT B");
+  vNpSetupSpi();
+  xTaskCreate(vNpSpiSlaveReadTask, "xNpSpiSlaveReadTask", 2048, NULL, 4, &xSpiReadTaskHandle);
+  vNpSetupAnp();
+  xTaskCreate(vNpAnpStripUpdateTask, "vNpAnpStripUpdateTask", 2048, NULL, 5, &xAnpStripTaskHandle);
 }

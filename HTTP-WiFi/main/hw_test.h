@@ -24,13 +24,13 @@ extern "C" {
 
 #include "anp_component.h"
 
-extern QueueHandle_t http_to_spi_queue_handle;
-extern EventGroupHandle_t http_and_spi_event_group_handle;
-extern StreamBufferHandle_t http_to_spi_stream_buffer_handle;
+extern QueueHandle_t xHttpToSpiQueueHandle;
+extern EventGroupHandle_t xHttpAndSpiEventGroupHandle;
+extern StreamBufferHandle_t xHttpToSpiStreamBufferHandle;
 
 void test_spi_pattern_task(void *arg);
 
-void test_spi_dynamic_task (void *arg);
+void vHwTestSpiDynamicTask (void *arg);
 
 void test_spi_pattern_array_task(void *arg);
 
