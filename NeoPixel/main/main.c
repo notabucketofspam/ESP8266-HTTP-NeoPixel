@@ -11,6 +11,7 @@
 
 #include "np_def.h"
 #include "np_spi.h"
+#include "np_anp.h"
 
 #ifdef __cplusplus
 extern "C" { void app_main(void); }
@@ -24,16 +25,18 @@ TaskHandle_t anp_strip_task_handle = NULL;
 /*
  * Other handles
  */
-QueueHandle_t spi_to_anp_queue_handle = NULL;
-StreamBufferHandle_t spi_to_anp_stream_buffer_handle = NULL;
+QueueHandle_t xSpiToAnpQueueHandle = NULL;
+StreamBufferHandle_t xSpiToAnpStreamBufferHandle = NULL;
 
 // TODO: make sure that anp_pinMode() doesn't interfere with the handshake pin
 
 void app_main(void) {
-  spi_to_anp_queue_handle = xQueueCreate(CONFIG_NP_QUEUE_SIZE, sizeof(struct np_message_t *));
+  xSpiToAnpQueueHandle = xQueueCreate(CONFIG_NP_QUEUE_SIZE, sizeof(struct np_message_t *));
   #if CONFIG_NP_ENABLE_DYNAMIC_PATTERN
-    spi_to_anp_stream_buffer_handle = xStreamBufferCreate(CONFIG_NP_STREAM_BUFFER_SIZE, 64);
+    xSpiToAnpStreamBufferHandle = xStreamBufferCreate(CONFIG_NP_STREAM_BUFFER_SIZE, NP_DATA_CHUNK_SIZE);
   #endif
   np_setup_spi();
+//  ESP_LOGI(__ESP_FILE__, "POINT A");
   xTaskCreate(np_spi_slave_read_task, "spi_task", 2048, NULL, 4, &spi_read_task_handle);
+//  ESP_LOGI(__ESP_FILE__, "POINT B");
 }

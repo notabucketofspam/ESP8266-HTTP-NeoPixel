@@ -11,19 +11,27 @@ extern "C" {
 #include "freertos/stream_buffer.h"
 
 /*
+ * Max size of a single SPI transfer on the ESP8266
+ */
+#define HW_DATA_CHUNK_SIZE (64)
+/*
+ * Useful for getting the minimum number of data chunks needed to transmit some stuff
+ * Primarily used with sizeof() for structs and xStreamBufferBytesAvailable() for the dynamic data stream buffer
+ */
+#define HW_DATA_CHUNK_COUNT(x) (((x) + (HW_DATA_CHUNK_SIZE - 1)) / HW_DATA_CHUNK_SIZE)
+/*
  * Bits used by the HTTP and SPI event group
  */
 #define HW_BIT_SPI_TRANS_END BIT(0) // SPI transfer is complete; safe to free message data memory
 #define HW_BIT_HTTP_MSG_MEM_FREE BIT(1) // Message data memory from the HTTP task has been freed
 #define HW_BIT_SPI_TRANS_START BIT(2) // Ready to start SPI transfer
 #define HW_BIT_SPI_TRANS_CONTINUE BIT(3) // Intermediate block in SPI transfer, after waiting for the GPIO interrupt
-
 /*
  * Type of message in the queue
  */
 enum hw_message_type {
   NO_TYPE = 0, // Unused at present
-  BASIC_PATTERN_DATA, // Used in conjunction with hw_basic_pattern_data_t
+  STATIC_PATTERN_DATA, // Used in conjunction with hw_basic_pattern_data_t
   DYNAMIC_PATTERN_DATA // Reads commands from a stream buffer and sends them to the NeoPixel device
 };
 /*
@@ -65,13 +73,31 @@ struct hw_pattern_data {
   uint32_t color; // Mostly used for fill color and whatnot
 };
 /*
+ * Packed structure for transferring dynamic pattern data
+ */
+struct hw_dynamic_data {
+  union { // Done to at least partially match the layout of hw_pattern_data
+    struct {
+      uint16_t cmd: 3;
+      uint16_t pattern: 1;
+      uint16_t pixel_index: 12;
+    };
+    uint16_t val;
+  };
+  uint32_t color; // This could've been 24-bit but then that would've negated RGBW support
+};
+/*
  * The message for communicating between the HTTP server and the SPI master task
  */
 struct hw_message {
   struct hw_message_metadata *metadata;
   union {
     struct hw_pattern_data *pattern_data;
-    StreamBufferHandle_t *stream_buffer_handle;
+    struct {
+      struct hw_pattern_data **pattern_data_array;
+      uint32_t pattern_data_array_length;
+    };
+    StreamBufferHandle_t *xStreamBufferHandle;
   };
 };
 

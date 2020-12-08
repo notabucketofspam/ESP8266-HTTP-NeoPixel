@@ -11,11 +11,20 @@ extern "C" {
 #include "freertos/stream_buffer.h"
 
 /*
+ * Max size of a single SPI transfer on the ESP8266
+ */
+#define NP_DATA_CHUNK_SIZE (64)
+/*
+ * Useful for getting the minimum number of data chunks needed to receive some stuff
+ * Data chunks are always sixteen uint32_t's, thus 64-bytes long
+ */
+#define NP_DATA_CHUNK_COUNT(x) (((x) + (NP_DATA_CHUNK_SIZE - 1)) / NP_DATA_CHUNK_SIZE)
+/*
  * Type of message in the queue
  */
 enum np_message_type {
   NO_TYPE = 0, // Unused at present
-  BASIC_PATTERN_DATA, // Used in conjunction with np_basic_pattern_data_t
+  STATIC_PATTERN_DATA, // Used in conjunction with np_basic_pattern_data_t
   DYNAMIC_PATTERN_DATA // Reads commands from a stream buffer and sends them to the NeoPixel device
 };
 /*
@@ -54,6 +63,20 @@ struct np_pattern_data {
   };
   uint32_t delay; // In milliseconds; used to control the speed of effects
   uint32_t color; // Mostly used for fill color and whatnot
+};
+/*
+ * Packed structure for receiving dynamic pattern data
+ */
+struct np_dynamic_data {
+  union { // Done to at least partially match the layout of hw_pattern_data
+    struct {
+      uint16_t cmd: 3;
+      uint16_t pattern: 1;
+      uint16_t pixel_index: 12;
+    };
+    uint16_t val;
+  };
+  uint32_t color; // This could've been 24-bit but then that would've negated RGBW support
 };
 /*
  * The message for communicating between the HTTP server and the SPI master task

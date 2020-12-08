@@ -17,8 +17,9 @@ extern "C" {
 #include "esp_attr.h"
 #include "driver/gpio.h"
 #include "driver/spi.h"
-#include "driver/hspi_logic_layer.h"
+//#include "driver/hspi_logic_layer.h"
 #include "esp_log.h"
+#include "esp8266/spi_struct.h"
 
 #include "np_def.h"
 
@@ -26,7 +27,7 @@ extern "C" {
  * These pass data from the SPI task to the main NeoPixel task
  */
 extern QueueHandle_t spi_to_anp_queue_handle;
-extern StreamBufferHandle_t spi_to_anp_stream_buffer_handle;
+extern StreamBufferHandle_t xSpiToAnpStreamBufferHandle;
 /*
  * Used for unblocking the task when need be, instead of a binary semaphore
  */

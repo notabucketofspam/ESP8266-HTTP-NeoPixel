@@ -7,6 +7,8 @@ extern "C" {
 
 #include "np_def.h"
 
+#include "anp_component.h"
+
 /*
  * Uses the Kconfig values for the strip length
  */

@@ -4,7 +4,7 @@
 extern "C" {
 #endif
 
-void hw_setup_anp(void) {
+void hw_setup_http(void) {
 
 }
 
