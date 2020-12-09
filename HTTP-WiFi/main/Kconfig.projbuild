@@ -121,15 +121,14 @@ menu "HTTP-WiFi configuration"
     config HW_STREAM_BUFFER_SIZE
       depends on HW_ENABLE_DYNAMIC_PATTERN
       int "HTTP to SPI stream buffer size"
-      range 64 24576
-      default 1024
+      range 64 32768
+      default 2048
       help
         Used for dynamic patterns. Don't set it too low if doing complex things.
         Keep in mind that SPI transfers on the ESP8266 are always a max of 
         64-bytes at a time, so please make this a multiple of 64 if you can.
-        Note that each pixel requires 6-bytes; 2-byte for the pixel index bitfield, and
-        4-byte for the color. The misaligned number may result in some strange
-        behaviour, but it's necessary for achieving maximum throughput.
-        TLDR: roof(NEOPIXEL_COUNT * 6 / 64) * 64
+        Note that each pixel requires 8-bytes; 4-bytes for the pixel index bitfield, and
+        4-bytes for the color.
+        TLDR: roof(NEOPIXEL_COUNT * 8 / 64) * 64
   endmenu
 endmenu

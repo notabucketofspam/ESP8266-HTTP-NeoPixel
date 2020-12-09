@@ -64,10 +64,10 @@ menu "NeoPixel configuration"
     config NP_STREAM_BUFFER_SIZE
       depends on NP_ENABLE_DYNAMIC_PATTERN
       int "SPI to ANP stream buffer size"
-      range 64 24576
-      default 1024
+      range 64 32768
+      default 2048
       help
         Refer to HTTP-WiFi for documentation.
-        TLDR: roof(NEOPIXEL_COUNT * 6 / 64) * 64
+        TLDR: roof(NEOPIXEL_COUNT * 8 / 64) * 64
   endmenu
 endmenu

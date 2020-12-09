@@ -5,6 +5,10 @@
 extern "C" {
 #endif
 
+#include <stddef.h>
+#include <string.h>
+#include <stdint.h>
+
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
 #include "freertos/event_groups.h"
@@ -12,6 +16,7 @@ extern "C" {
 #include "freertos/stream_buffer.h"
 
 #include "esp_attr.h"
+#include "esp_log.h"
 
 #include "np_def.h"
 
@@ -26,7 +31,8 @@ extern TaskHandle_t xAnpStripTaskHandle;
  */
 extern QueueHandle_t xSpiToAnpQueueHandle;
 extern EventGroupHandle_t xSpiAndAnpEventGroupHandle;
-extern StreamBufferHandle_t xSpiToAnpStreamBufferHandle;
+//extern StreamBufferHandle_t xSpiToAnpStreamBufferHandle;
+extern StreamBufferHandle_t xSpiStreamBufferHandle;
 /*
  * Uses the Kconfig values for the strip length
  */
@@ -34,7 +40,7 @@ void vNpSetupAnp(void);
 /*
  * Schedule sub-processes to run dynamic / static patterns
  */
-void IRAM_ATTR vNpAnpStripUpdateTask(void *arg);
+//void IRAM_ATTR vNpAnpStripUpdateTask(void *arg);
 
 #ifdef __cplusplus
 }

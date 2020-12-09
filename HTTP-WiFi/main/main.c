@@ -48,5 +48,6 @@ void app_main(void) {
   vTaskDelay(1000 / portTICK_PERIOD_MS);
 //  xTaskCreate(test_spi_pattern_task, "test_spi_pattern_task", 2048, NULL, 3, &xHttpServerTaskHandle);
 //  xTaskCreate(test_spi_pattern_array_task, "test_spi_pattern_array_task", 2048, NULL, 3, &xHttpServerTaskHandle);
-  xTaskCreate(vHwTestSpiDynamicTask, "vHwTestSpiDynamicTask", 2048, NULL, 3, &xHttpServerTaskHandle);
+//  xTaskCreate(vHwTestSpiDynamicTask, "vHwTestSpiDynamicTask", 2048, NULL, 3, &xHttpServerTaskHandle);
+  xTaskCreate(vHwTestSpiDynamicTaskTwo, "vHwTestSpiDynamicTaskTwo", 2048, NULL, 3, &xHttpServerTaskHandle);
 }

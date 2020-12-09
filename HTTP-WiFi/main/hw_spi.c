@@ -121,7 +121,7 @@ void IRAM_ATTR vHwSpiMasterWriteTask(void *arg) {
   const uint32_t ulDataChunkCountMetadata = HW_DATA_CHUNK_COUNT(sizeof(struct xHwMessageMetadata));
   for (;;) {
     xEventGroupWaitBits(xHttpAndSpiEventGroupHandle, HW_BIT_SPI_TRANS_START, pdTRUE, pdTRUE, portMAX_DELAY);
-    ESP_LOGI(__ESP_FILE__, "Task resume");
+//    ESP_LOGI(__ESP_FILE__, "Task resume");
     while (uxQueueMessagesWaiting(xHttpToSpiQueueHandle) > 0) {
       memset(&pxMessageBuffer, 0x00, sizeof(struct xHwMessage *));
       xQueueReceive(xHttpToSpiQueueHandle, &pxMessageBuffer, portMAX_DELAY);
@@ -224,12 +224,15 @@ void IRAM_ATTR vHwSpiMasterWriteTask(void *arg) {
           xEventGroupWaitBits(xHttpAndSpiEventGroupHandle, HW_BIT_HTTP_MSG_MEM_FREE, pdTRUE, pdTRUE, portMAX_DELAY);
         #endif
       } else if (pxMessageBuffer->pxMetadata->xType == DYNAMIC_PATTERN_DATA) {
+//        memset(pulDataChunk, 0xFF, sizeof(pulDataChunk));
         #if CONFIG_HW_ENABLE_DYNAMIC_PATTERN
           ulTaskNotifyTake(pdTRUE, 0);
-          const uint32_t ulInitialStreamBufferBytes =
+          uint32_t ulInitialStreamBufferBytes =
             xStreamBufferBytesAvailable(*pxMessageBuffer->pxStreamBufferHandle);
           spi_master_send_length(HW_DATA_CHUNK_COUNT(sizeof(struct xHwStaticData) + ulInitialStreamBufferBytes) *
             sizeof(pulDataChunk));
+//          ESP_LOGI(__ESP_FILE__, "send length %u", HW_DATA_CHUNK_COUNT(sizeof(struct xHwStaticData) +
+//            ulInitialStreamBufferBytes) * sizeof(pulDataChunk));
           ulTaskNotifyTake(pdTRUE, portMAX_DELAY);
           // Hold the current index within pulDataChunk of where the data stops; rolls over to zero every 64-bytes
           uint32_t ulDataChunkPosition = 0;
@@ -250,7 +253,7 @@ void IRAM_ATTR vHwSpiMasterWriteTask(void *arg) {
               ulDataChunkPosition = 0;
             }
           }
-          const uint32_t ulDataChunkCountStreamBuffer = HW_DATA_CHUNK_COUNT(ulInitialStreamBufferBytes);
+          uint32_t ulDataChunkCountStreamBuffer = HW_DATA_CHUNK_COUNT(ulInitialStreamBufferBytes);
           uint32_t ulRemainingStreamBufferBytes = ulInitialStreamBufferBytes;
           // Send the dynamic pattern data itself
           for (uint32_t ulDataChunkIndex = 0; ulDataChunkIndex < ulDataChunkCountStreamBuffer; ++ulDataChunkIndex) {
@@ -272,15 +275,18 @@ void IRAM_ATTR vHwSpiMasterWriteTask(void *arg) {
           }
           // Send the straggler data chunk, if it exists
           if (ulDataChunkPosition > 0) {
+//            ESP_LOGI(__ESP_FILE__, "ulDataChunkPosition %u", ulDataChunkPosition);
+            memset((void *) (pulDataChunk) + ulDataChunkPosition, 0xFF, sizeof(pulDataChunk) - ulDataChunkPosition);
+//            ESP_LOGI(__ESP_FILE__, "0x%X", pulDataChunk[15]);
             spi_master_transmit(SPI_WRITE, pulDataChunk);
             ulTaskNotifyTake(pdTRUE, portMAX_DELAY);
-            memset(pulDataChunk, 0x00, sizeof(pulDataChunk));
           }
           // End-of-transmission cleanup
           spi_master_send_length((uint32_t) 0);
           xEventGroupSetBits(xHttpAndSpiEventGroupHandle, HW_BIT_SPI_TRANS_END);
-          ESP_LOGI(__ESP_FILE__, "End transmission");
+//          ESP_LOGI(__ESP_FILE__, "End transmission");
           xEventGroupWaitBits(xHttpAndSpiEventGroupHandle, HW_BIT_HTTP_MSG_MEM_FREE, pdTRUE, pdTRUE, portMAX_DELAY);
+          memset(pulDataChunk, 0x00, sizeof(pulDataChunk));
         #endif
       } else {
         // Something has gone wrong, but I don't know how to fix it at the moment

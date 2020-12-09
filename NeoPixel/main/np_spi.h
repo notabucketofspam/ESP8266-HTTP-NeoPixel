@@ -31,7 +31,8 @@ extern "C" {
  */
 extern QueueHandle_t xSpiToAnpQueueHandle;
 extern EventGroupHandle_t xSpiAndAnpEventGroupHandle;
-extern StreamBufferHandle_t xSpiToAnpStreamBufferHandle;
+//extern StreamBufferHandle_t xSpiToAnpStreamBufferHandle;
+extern StreamBufferHandle_t xSpiStreamBufferHandle;
 /*
  * Used for unblocking the task when need be, instead of a binary semaphore
  */

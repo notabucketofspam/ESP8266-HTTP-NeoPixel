@@ -10,6 +10,8 @@ extern "C" {
 #include "freertos/FreeRTOS.h"
 #include "freertos/stream_buffer.h"
 
+#include "esp8266/eagle_soc.h"
+
 /*
  * Max size of a single SPI transfer on the ESP8266
  */
@@ -60,15 +62,9 @@ struct xHwMessageMetadata {
  * so long as you send multiple queue messages in a row
  */
 struct xHwStaticData {
-  union {
-    struct {
-      uint32_t bCmd: 3; // Unused at the moment
-      uint32_t bPattern: 5;
-      uint32_t bPixelIndexStart: 12; // Inclusive, since it's zero-indexed
-      uint32_t bPixelIndexEnd: 12; // Also inclusive for the same reason
-    };
-    uint32_t bVal; // Fill for the union; usually just set this to zero to clear it
-  };
+  enum xHwPattern xPattern;
+  uint16_t usPixelIndexStart; // Inclusive, since it's zero-indexed
+  uint16_t usPixelIndexEnd; // Also inclusive for the same reason
   uint32_t ulDelay; // In milliseconds; used to control the speed of effects
   uint32_t ulColor; // Mostly used for fill color and whatnot
 };
@@ -76,14 +72,7 @@ struct xHwStaticData {
  * Packed structure for transferring dynamic pattern data
  */
 struct xHwDynamicData {
-  union { // Done to at least partially match the layout of xHwStaticData
-    struct {
-      uint16_t bCmd: 3;
-      uint16_t bPattern: 1;
-      uint16_t bPixelIndex: 12;
-    };
-    uint16_t bVal;
-  };
+  uint32_t ulPixelIndex;
   uint32_t ulColor; // This could've been 24-bit but then that would've negated RGBW support
 };
 /*

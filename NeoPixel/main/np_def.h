@@ -10,6 +10,8 @@ extern "C" {
 #include "freertos/FreeRTOS.h"
 #include "freertos/stream_buffer.h"
 
+#include "esp8266/eagle_soc.h"
+
 /*
  * Max size of a single SPI transfer on the ESP8266
  */
@@ -19,6 +21,12 @@ extern "C" {
  * Data chunks are always sixteen uint32_t's, thus 64-bytes long
  */
 #define NP_DATA_CHUNK_COUNT(x) (((x) + (NP_DATA_CHUNK_SIZE - 1)) / NP_DATA_CHUNK_SIZE)
+/*
+ * Bits used by the SPI and ANP event group
+ */
+#define NP_BIT_SPI_TRANS_END BIT(0)
+#define NP_BIT_ANP_DYNAMIC_END BIT(1)
+#define NP_BIT_ANP_DYNAMIC_START BIT(2)
 /*
  * Type of message in the queue
  */
@@ -47,36 +55,24 @@ struct xNpMessageMetadata {
   enum xNpMessageType xType;
 };
 /*
- * A struct for assigning a bPattern to a segment of the LED strip
+ * A struct for assigning a predetermined pattern to a segment of the LED strip
  * Note that it's possible to have different sections of the strip have different patterns,
  * so long as you send multiple queue messages in a row
  */
 struct xNpStaticData {
-  union {
-    struct {
-      uint32_t bCmd: 3; // Unused at the moment
-      uint32_t bPattern: 5;
-      uint32_t bPixelIndexStart: 12; // Inclusive, since it's zero-indexed
-      uint32_t bPixelIndexEnd: 12; // Also inclusive for the same reason
-    };
-    uint32_t bVal; // Fill for the union; usually just set this to zero to clear it
-  };
+  enum xNpPattern xPattern;
+  uint16_t usPixelIndexStart; // Inclusive, since it's zero-indexed
+  uint16_t usPixelIndexEnd; // Also inclusive for the same reason
   uint32_t ulDelay; // In milliseconds; used to control the speed of effects
   uint32_t ulColor; // Mostly used for fill ulColor and whatnot
 };
 /*
- * Packed structure for receiving dynamic bPattern data
+ * Packed structure for receiving dynamic pattern data
+ * Like xNpStaticData, it's crucial for the layout of this struct to match that found in HTTP-WiFi
  */
-struct np_dynamic_data {
-  union { // Done to at least partially match the layout of hw_pattern_data
-    struct {
-      uint16_t bCmd: 3;
-      uint16_t bPattern: 1;
-      uint16_t bPixelIndex: 12;
-    };
-    uint16_t bVal;
-  };
-  uint32_t ulColor; // This could've been 24-bit but then that would've negated RGBW support
+struct xNpDynamicData {
+  uint32_t ulPixelIndex;
+  uint32_t ulColor;
 };
 /*
  * The message for communicating between the HTTP server and the SPI master task

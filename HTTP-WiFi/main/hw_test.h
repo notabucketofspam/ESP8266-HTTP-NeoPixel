@@ -19,6 +19,7 @@ extern "C" {
 #include "freertos/stream_buffer.h"
 
 #include "esp_log.h"
+#include "esp_system.h"
 
 #include "hw_def.h"
 
@@ -33,6 +34,8 @@ void test_spi_pattern_task(void *arg);
 void vHwTestSpiDynamicTask (void *arg);
 
 void test_spi_pattern_array_task(void *arg);
+
+void vHwTestSpiDynamicTaskTwo(void *arg);
 
 #ifdef __cplusplus
 }
