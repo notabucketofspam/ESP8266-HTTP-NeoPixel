@@ -11,6 +11,8 @@
 #include "freertos/queue.h"
 #include "freertos/stream_buffer.h"
 
+#include "esp_log.h"
+
 #include "np_def.h"
 #include "np_spi.h"
 #include "np_anp.h"
@@ -30,7 +32,6 @@ TaskHandle_t xDynamicDataTaskHandle = NULL;
  */
 QueueHandle_t xSpiToAnpQueueHandle = NULL;
 EventGroupHandle_t xSpiAndAnpEventGroupHandle = NULL;
-//StreamBufferHandle_t xSpiToAnpStreamBufferHandle = NULL;
 StreamBufferHandle_t xSpiStreamBufferHandle = NULL;
 
 // TODO: make sure that anp_pinMode() doesn't interfere with the handshake pin
@@ -38,14 +39,17 @@ StreamBufferHandle_t xSpiStreamBufferHandle = NULL;
 void app_main(void) {
   xSpiToAnpQueueHandle = xQueueCreate(CONFIG_NP_QUEUE_SIZE, sizeof(struct xNpMessage *));
   xSpiAndAnpEventGroupHandle = xEventGroupCreate();
-  vNpSetupSpi();
-  xTaskCreate(vNpSpiSlaveReadTask, "xNpSpiSlaveReadTask", 2048, NULL, 4, &xSpiReadTaskHandle);
   #if CONFIG_NP_ENABLE_DYNAMIC_PATTERN
-    uint32_t ulStreamBufferSize = (NP_DATA_CHUNK_COUNT(sizeof(struct xNpMessageMetadata)) * NP_DATA_CHUNK_SIZE) +
-      CONFIG_NP_STREAM_BUFFER_SIZE;
-//    xSpiToAnpStreamBufferHandle = xStreamBufferCreate(CONFIG_NP_STREAM_BUFFER_SIZE, NP_DATA_CHUNK_SIZE);
+    uint32_t ulStreamBufferSize = NP_DATA_CHUNK_COUNT(sizeof(struct xNpMessageMetadata) +
+      (CONFIG_NP_NEOPIXEL_COUNT * sizeof(struct xNpDynamicData))) * NP_DATA_CHUNK_SIZE;
+//    ESP_LOGI(__ESP_FILE__, "ulStreamBufferSize %u", ulStreamBufferSize);
     xSpiStreamBufferHandle = xStreamBufferCreate(ulStreamBufferSize, NP_DATA_CHUNK_SIZE);
   #endif
+  xTaskCreate(vDynamicDataProcessTask, "vDynamicDataProcessTask", 2048, NULL, 4, &xDynamicDataTaskHandle);
   vNpSetupAnp();
+  xTaskCreate(vNpSpiSlaveReadTask, "xNpSpiSlaveReadTask", 2048, NULL, 4, &xSpiReadTaskHandle);
+  // SPI setup has to happen after the task has started because the event
+  // callback makes use of task notifications
+  vNpSetupSpi();
 //  xTaskCreate(vNpAnpStripUpdateTask, "vNpAnpStripUpdateTask", 2048, NULL, 5, &xAnpStripTaskHandle);
 }

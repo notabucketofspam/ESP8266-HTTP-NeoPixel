@@ -41,13 +41,15 @@ void app_main(void) {
   xHttpToSpiQueueHandle = xQueueCreate(CONFIG_HW_QUEUE_SIZE, sizeof(struct xHwMessage *));
   xHttpAndSpiEventGroupHandle = xEventGroupCreate();
   #if CONFIG_HW_ENABLE_DYNAMIC_PATTERN
-    xHttpToSpiStreamBufferHandle = xStreamBufferCreate(CONFIG_HW_STREAM_BUFFER_SIZE, HW_DATA_CHUNK_SIZE);
+    xHttpToSpiStreamBufferHandle = xStreamBufferCreate(CONFIG_HW_NEOPIXEL_COUNT * sizeof(struct xHwDynamicData),
+    HW_DATA_CHUNK_SIZE);
   #endif
-  vHwSetupSpi();
   xTaskCreate(vHwSpiMasterWriteTask, "vHwSpiMasterWriteTask", 2048, NULL, 4, &xSpiWriteTaskHandle);
+  vHwSetupSpi();
   vTaskDelay(1000 / portTICK_PERIOD_MS);
 //  xTaskCreate(test_spi_pattern_task, "test_spi_pattern_task", 2048, NULL, 3, &xHttpServerTaskHandle);
 //  xTaskCreate(test_spi_pattern_array_task, "test_spi_pattern_array_task", 2048, NULL, 3, &xHttpServerTaskHandle);
 //  xTaskCreate(vHwTestSpiDynamicTask, "vHwTestSpiDynamicTask", 2048, NULL, 3, &xHttpServerTaskHandle);
-  xTaskCreate(vHwTestSpiDynamicTaskTwo, "vHwTestSpiDynamicTaskTwo", 2048, NULL, 3, &xHttpServerTaskHandle);
+//  xTaskCreate(vHwTestSpiDynamicTaskTwo, "vHwTestSpiDynamicTaskTwo", 2048, NULL, 3, &xHttpServerTaskHandle);
+  xTaskCreate(vHwTestSpiDynamicTaskThree, "vHwTestSpiDynamicTaskThree", 2048, NULL, 3, &xHttpServerTaskHandle);
 }

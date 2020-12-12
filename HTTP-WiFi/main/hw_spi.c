@@ -224,69 +224,100 @@ void IRAM_ATTR vHwSpiMasterWriteTask(void *arg) {
           xEventGroupWaitBits(xHttpAndSpiEventGroupHandle, HW_BIT_HTTP_MSG_MEM_FREE, pdTRUE, pdTRUE, portMAX_DELAY);
         #endif
       } else if (pxMessageBuffer->pxMetadata->xType == DYNAMIC_PATTERN_DATA) {
-//        memset(pulDataChunk, 0xFF, sizeof(pulDataChunk));
         #if CONFIG_HW_ENABLE_DYNAMIC_PATTERN
           ulTaskNotifyTake(pdTRUE, 0);
           uint32_t ulInitialStreamBufferBytes =
             xStreamBufferBytesAvailable(*pxMessageBuffer->pxStreamBufferHandle);
-          spi_master_send_length(HW_DATA_CHUNK_COUNT(sizeof(struct xHwStaticData) + ulInitialStreamBufferBytes) *
-            sizeof(pulDataChunk));
+//          ESP_LOGI(__ESP_FILE__, "ulInitialStreamBufferBytes %u", ulInitialStreamBufferBytes);
+          uint32_t ulSpiSendLength = HW_DATA_CHUNK_COUNT(sizeof(struct xHwMessageMetadata) +
+            ulInitialStreamBufferBytes) * sizeof(pulDataChunk);
+//          ESP_LOGI(__ESP_FILE__, "ulSpiSendLength %u", ulSpiSendLength);
+          spi_master_send_length(ulSpiSendLength);
 //          ESP_LOGI(__ESP_FILE__, "send length %u", HW_DATA_CHUNK_COUNT(sizeof(struct xHwStaticData) +
 //            ulInitialStreamBufferBytes) * sizeof(pulDataChunk));
           ulTaskNotifyTake(pdTRUE, portMAX_DELAY);
           // Hold the current index within pulDataChunk of where the data stops; rolls over to zero every 64-bytes
-          uint32_t ulDataChunkPosition = 0;
+//          uint32_t ulDataChunkPosition = 0;
+          struct {
+            uint32_t bValue: 6;
+            uint32_t reserved: 26;
+          } ulDataChunkPosition;
+          ulDataChunkPosition.bValue = 0;
+//          uint32_t ulTransmitCounter = 0;
           // Load pxMetadata into pulDataChunk, send it if need be and continue loading
           for (uint32_t ulDataChunkIndex = 0; ulDataChunkIndex < ulDataChunkCountMetadata; ++ulDataChunkIndex) {
             // Get the minimum possible amount of data to transmit
             uint32_t ulDataTransmitAmount = (uint32_t) fminf(sizeof(pulDataChunk),
-              (sizeof(struct xHwMessageMetadata)) - (ulDataChunkIndex * sizeof(pulDataChunk)));
+              sizeof(struct xHwMessageMetadata) - (ulDataChunkIndex * sizeof(pulDataChunk)));
+//            ESP_LOGI(__ESP_FILE__, "ulDataTransmitAmount in metadata %u", ulDataTransmitAmount);
             // Copy the metadata to pulDataChunk, shifting over by 64-bytes every loop if necessary
-            memcpy(pulDataChunk, (void *) ((pxMessageBuffer->pxMetadata) + (ulDataChunkIndex * sizeof(pulDataChunk))),
+            memcpy(pulDataChunk, (void *) (pxMessageBuffer->pxMetadata) + (ulDataChunkIndex * sizeof(pulDataChunk)),
               ulDataTransmitAmount);
-            // The position increment here looks dumb but it works so I'm leaving it
-            ulDataChunkPosition += (ulDataTransmitAmount - ulDataChunkPosition);
-            if (ulDataTransmitAmount == sizeof(pulDataChunk)) {
+            ulDataChunkPosition.bValue += ulDataTransmitAmount;
+//            ESP_LOGI(__ESP_FILE__, "ulDataChunkPosition in metadata %u", ulDataChunkPosition.bValue);
+//            if (ulDataTransmitAmount == sizeof(pulDataChunk)) {
+            if (ulDataChunkPosition.bValue == 0) {
               spi_master_transmit(SPI_WRITE, pulDataChunk);
               ulTaskNotifyTake(pdTRUE, portMAX_DELAY);
-              memset(pulDataChunk, 0x00, sizeof(pulDataChunk));
-              ulDataChunkPosition = 0;
+//              ulTransmitCounter += 64;
+//              ESP_LOGI(__ESP_FILE__, "ulTransmitCounter %u", ulTransmitCounter);
+//              memset(pulDataChunk, 0x00, sizeof(pulDataChunk));
+//              ulDataChunkPosition.bValue = 0;
             }
           }
+//          struct xHwDynamicData xDynamicData;
           uint32_t ulDataChunkCountStreamBuffer = HW_DATA_CHUNK_COUNT(ulInitialStreamBufferBytes);
+//          uint32_t ulDynamicDataIndex = ulInitialStreamBufferBytes / sizeof(struct xHwDynamicData);
           uint32_t ulRemainingStreamBufferBytes = ulInitialStreamBufferBytes;
           // Send the dynamic pattern data itself
-          for (uint32_t ulDataChunkIndex = 0; ulDataChunkIndex < ulDataChunkCountStreamBuffer; ++ulDataChunkIndex) {
+          for (uint32_t ulDataChunkIndex = 0; ulDataChunkIndex < ulDataChunkCountStreamBuffer + 1; ++ulDataChunkIndex) {
             // Minimum data to transmit; will max out at sizeof(pulDataChunk)
-            uint32_t ulDataTransmitAmount = (uint32_t) fminf(sizeof(pulDataChunk),
+            uint32_t ulDataTransmitAmount = (uint32_t) fminf(sizeof(pulDataChunk) - ulDataChunkPosition.bValue,
               ulRemainingStreamBufferBytes);
+//            ESP_LOGI(__ESP_FILE__, "ulDataTransmitAmount in dynamic %u", ulDataTransmitAmount);
             // Fill pulDataChunk
-            xStreamBufferReceive(*pxMessageBuffer->pxStreamBufferHandle, (void *) (pulDataChunk + ulDataChunkPosition),
-              ulDataTransmitAmount - ulDataChunkPosition, portMAX_DELAY);
-            ulDataChunkPosition += (ulDataTransmitAmount - ulDataChunkPosition);
+            xStreamBufferReceive(*pxMessageBuffer->pxStreamBufferHandle, (void *) (pulDataChunk) +
+              ulDataChunkPosition.bValue, ulDataTransmitAmount, portMAX_DELAY);
+//            ulDataChunkPosition += (ulDataTransmitAmount - ulDataChunkPosition);
+//            memcpy(&xDynamicData, (void *) (pulDataChunk) + ulDataChunkPosition.bValue,
+//              sizeof(struct xHwDynamicData));
+//            ESP_LOGI(__ESP_FILE__, "pixel %u, red %u, green %u, blue%u", xDynamicData.ulPixelIndex,
+//              xDynamicData.ulColor >> 16 & 0xFF, xDynamicData.ulColor >>  8 & 0xFF, xDynamicData.ulColor & 0xFF);
+            ulDataChunkPosition.bValue += ulDataTransmitAmount;
+//            ESP_LOGI(__ESP_FILE__, "ulDataChunkPosition in dynamic: %u", ulDataChunkPosition.bValue);
+            ulRemainingStreamBufferBytes -= ulDataTransmitAmount;
+//            ESP_LOGI(__ESP_FILE__, "bytes avail in dynamic %u", ulRemainingStreamBufferBytes);
             // If pulDataChunk is all the way full, send it
-            if (ulDataTransmitAmount == sizeof(pulDataChunk)) {
+//            if (ulDataTransmitAmount == sizeof(pulDataChunk)) {
+            if (ulDataChunkPosition.bValue == 0) {
               spi_master_transmit(SPI_WRITE, pulDataChunk);
               ulTaskNotifyTake(pdTRUE, portMAX_DELAY);
-              memset(pulDataChunk, 0x00, sizeof(pulDataChunk));
-              ulDataChunkPosition = 0;
-              ulRemainingStreamBufferBytes = xStreamBufferBytesAvailable(*pxMessageBuffer->pxStreamBufferHandle);
+//              ulTransmitCounter += 64;
+//              ESP_LOGI(__ESP_FILE__, "ulTransmitCounter %u", ulTransmitCounter);
+//              memset(pulDataChunk, 0x00, sizeof(pulDataChunk));
+//              ulDataChunkPosition.bValue = 0;
+//              ulRemainingStreamBufferBytes = xStreamBufferBytesAvailable(*pxMessageBuffer->pxStreamBufferHandle);
             }
           }
+//          ESP_LOGI(__ESP_FILE__, "ulDataChunkPosition in straggler %u", ulDataChunkPosition.bValue);
           // Send the straggler data chunk, if it exists
-          if (ulDataChunkPosition > 0) {
-//            ESP_LOGI(__ESP_FILE__, "ulDataChunkPosition %u", ulDataChunkPosition);
-            memset((void *) (pulDataChunk) + ulDataChunkPosition, 0xFF, sizeof(pulDataChunk) - ulDataChunkPosition);
+          if (ulDataChunkPosition.bValue > 0) {
+            memset((void *) (pulDataChunk) + ulDataChunkPosition.bValue, 0xFF, sizeof(pulDataChunk) -
+              ulDataChunkPosition.bValue);
 //            ESP_LOGI(__ESP_FILE__, "0x%X", pulDataChunk[15]);
             spi_master_transmit(SPI_WRITE, pulDataChunk);
+//            ulRemainingStreamBufferBytes = xStreamBufferBytesAvailable(*pxMessageBuffer->pxStreamBufferHandle);
+//              ESP_LOGI(__ESP_FILE__, "bytes avail in straggler %u", ulRemainingStreamBufferBytes);
             ulTaskNotifyTake(pdTRUE, portMAX_DELAY);
+//            ulTransmitCounter += 64;
+//            ESP_LOGI(__ESP_FILE__, "ulTransmitCounter %u", ulTransmitCounter);
           }
           // End-of-transmission cleanup
           spi_master_send_length((uint32_t) 0);
           xEventGroupSetBits(xHttpAndSpiEventGroupHandle, HW_BIT_SPI_TRANS_END);
 //          ESP_LOGI(__ESP_FILE__, "End transmission");
           xEventGroupWaitBits(xHttpAndSpiEventGroupHandle, HW_BIT_HTTP_MSG_MEM_FREE, pdTRUE, pdTRUE, portMAX_DELAY);
-          memset(pulDataChunk, 0x00, sizeof(pulDataChunk));
+//          memset(pulDataChunk, 0x00, sizeof(pulDataChunk));
         #endif
       } else {
         // Something has gone wrong, but I don't know how to fix it at the moment

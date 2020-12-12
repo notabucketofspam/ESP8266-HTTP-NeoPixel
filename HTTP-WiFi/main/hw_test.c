@@ -4,6 +4,8 @@
 extern "C" {
 #endif
 
+static uint32_t ulWheelColor(uint32_t ulPosition);
+
 #if CONFIG_HW_ENABLE_STATIC_PATTERN & 0
 void test_spi_pattern_task(void *arg) {
   for (;;) {
@@ -57,9 +59,9 @@ void test_spi_pattern_task(void *arg) {
 }
 #endif
 void vHwTestSpiDynamicTask(void *arg) {
-  TickType_t xFullTaskWakeTime = xTaskGetTickCount();
-  TickType_t xPreviousWakeTime = xTaskGetTickCount(); // Used in conjunction with vTaskDelayUntil()
-  const TickType_t xTimeIncrement = pdMS_TO_TICKS(100); // Convert milliseconds to FreeRTOS ticks
+//  TickType_t xFullTaskWakeTime = xTaskGetTickCount();
+//  TickType_t xPreviousWakeTime = xTaskGetTickCount(); // Used in conjunction with vTaskDelayUntil()
+//  const TickType_t xTimeIncrement = pdMS_TO_TICKS(100); // Convert milliseconds to FreeRTOS ticks
   const uint16_t usPixelIndexStart = 0;
   const uint16_t usPixelIndexEnd = 299;
   for (;;) {
@@ -170,49 +172,114 @@ void test_spi_pattern_array_task(void *arg) {
 }
 #endif
 void vHwTestSpiDynamicTaskTwo(void *arg) {
-  const uint16_t usPixelIndexStart = 0;
-  const uint16_t usPixelIndexEnd = 299;
+  TickType_t xPreviousWakeTime = xTaskGetTickCount();
+  const TickType_t xTimeIncrement = pdMS_TO_TICKS(50);
+  const uint32_t ulPixelIndexStart = 0;
+  const uint32_t ulPixelIndexEnd = 299;
   for (;;) {
     // Send a rainbow pattern; stolen from the Adafruit example
     struct xHwMessage *pxTestMessage = malloc(sizeof(struct xHwMessage));
     pxTestMessage->pxStreamBufferHandle = &xHttpToSpiStreamBufferHandle;
-    for (uint32_t ulFirstPixelHue = 0; ulFirstPixelHue < 5 * 256; ++ulFirstPixelHue) {
+    // Need an array so that we can free its elements later
+    struct xHwDynamicData *pxDynamicDataPointerArray = calloc(( 1 + ulPixelIndexEnd - ulPixelIndexStart),
+      sizeof(struct xHwDynamicData));
+    for (uint32_t ulPixelIndex = ulPixelIndexStart; ulPixelIndex < ulPixelIndexEnd + 1; ++ulPixelIndex) {
       struct xHwMessageMetadata *pxTestMetadata = malloc(sizeof(struct xHwMessageMetadata));
       strcpy(pxTestMetadata->pcName, "pxTestMessage");
       pxTestMetadata->xType = DYNAMIC_PATTERN_DATA;
       pxTestMessage->pxMetadata = pxTestMetadata;
-      // Need an array so that we can free its elements later
-      struct xHwDynamicData **pxDynamicDataPointerArray = malloc((usPixelIndexEnd - usPixelIndexStart) *
-        sizeof(struct xHwDynamicData *));
-      for (uint32_t ulPixelIndex = usPixelIndexStart; ulPixelIndex < usPixelIndexEnd + 1; ++ulPixelIndex) {
-        uint16_t usPixelHue = (256 * ulFirstPixelHue) + ((ulPixelIndex * (uint32_t) 65536) / usPixelIndexEnd);
-        // The below is pretty much equivalent to anp_setPixelColor(),
-        // in fact that's what it gets converted to on the NeoPixel device
+      // The below is pretty much equivalent to anp_setPixelColor(),
+      // in fact that's what it gets converted to on the NeoPixel device
+      struct xHwDynamicData xDynamicData;
+      xDynamicData.ulPixelIndex = ulPixelIndex;
+      xDynamicData.ulColor = anp_Color_RGB(0, 127, 0);
+//        ESP_LOGI(__ESP_FILE__, "pixel %u, red %u, green %u, blue%u", xDynamicData.ulPixelIndex,
+//          xDynamicData.ulColor >> 16 & 0xFF, xDynamicData.ulColor >>  8 & 0xFF, xDynamicData.ulColor & 0xFF);
+//      ESP_LOGI(__ESP_FILE__, "point c + %u", ulPixelIndex);
+      pxDynamicDataPointerArray[ulPixelIndex - ulPixelIndexStart] = xDynamicData;
+//      ESP_LOGI(__ESP_FILE__, "point d + %u", ulPixelIndex);
+      xStreamBufferSend(*pxTestMessage->pxStreamBufferHandle, (void *) &xDynamicData, sizeof(struct xHwDynamicData),
+        portMAX_DELAY);
+//      ESP_LOGI(__ESP_FILE__, "point e + %u", ulPixelIndex);
+      xQueueSendToBack(xHttpToSpiQueueHandle, (void *) &pxTestMessage, portMAX_DELAY);
+//      ESP_LOGI(__ESP_FILE__, "point f + %u", ulPixelIndex);
+      xEventGroupSetBits(xHttpAndSpiEventGroupHandle, HW_BIT_SPI_TRANS_START);
+//      ESP_LOGI(__ESP_FILE__, "point g + %u", ulPixelIndex);
+      xEventGroupWaitBits(xHttpAndSpiEventGroupHandle, HW_BIT_SPI_TRANS_END, pdTRUE, pdTRUE, portMAX_DELAY);
+//      ESP_LOGI(__ESP_FILE__, "point h + %u", ulPixelIndex);
+      free(pxTestMessage->pxMetadata);
+      // Do a loop to free each of the xHwDynamicData structs, i.e. each pixel in the strip
+//      for (uint32_t ulPixelIndex = ulPixelIndexStart; ulPixelIndex < ulPixelIndexEnd; ++ulPixelIndex) {
+//        free(pxDynamicDataPointerArray[ulPixelIndex - ulPixelIndexStart]);
+//      }
+//      ESP_LOGI(__ESP_FILE__, "point b + %u", ulPixelIndex);
+      xEventGroupSetBits(xHttpAndSpiEventGroupHandle, HW_BIT_HTTP_MSG_MEM_FREE);
+//      ESP_LOGI(__ESP_FILE__, "heap free: %u", esp_get_free_heap_size());
+      vTaskDelayUntil(&xPreviousWakeTime, xTimeIncrement);
+    }
+//    ESP_LOGI(__ESP_FILE__, "point a");
+    free(pxDynamicDataPointerArray);
+    free(pxTestMessage);
+//    ESP_LOGI(__ESP_FILE__, "Task complete");
+//    vTaskDelayUntil(&xFullTaskWakeTime, pdMS_TO_TICKS(300000));
+  }
+}
+void vHwTestSpiDynamicTaskThree(void *arg) {
+  TickType_t xPreviousWakeTime = xTaskGetTickCount();
+  const TickType_t xTimeIncrement = pdMS_TO_TICKS(50);
+  const uint32_t ulPixelIndexStart = 0;
+  const uint32_t ulPixelIndexEnd = CONFIG_HW_NEOPIXEL_COUNT - 1;
+  for (;;) {
+    // This time we're stealing from the wheel example, specifically rainbowCycle()
+    struct xHwMessage *pxTestMessage = malloc(sizeof(struct xHwMessage));
+    pxTestMessage->pxStreamBufferHandle = &xHttpToSpiStreamBufferHandle;
+    struct xHwDynamicData **pxDynamicDataPointerArray = calloc(( 1 + ulPixelIndexEnd - ulPixelIndexStart),
+      sizeof(struct xHwDynamicData *));
+    for (uint32_t ulWheelPosition = 0; ulWheelPosition < 0x0100; ++ulWheelPosition) {
+      struct xHwMessageMetadata *pxTestMetadata = malloc(sizeof(struct xHwMessageMetadata));
+      strcpy(pxTestMetadata->pcName, "pxTestMessage");
+      pxTestMetadata->xType = DYNAMIC_PATTERN_DATA;
+      pxTestMessage->pxMetadata = pxTestMetadata;
+      for (uint32_t ulPixelIndex = ulPixelIndexStart; ulPixelIndex < ulPixelIndexEnd + 1; ++ulPixelIndex) {
         struct xHwDynamicData *pxDynamicData = malloc(sizeof(struct xHwDynamicData));
         pxDynamicData->ulPixelIndex = ulPixelIndex;
-        pxDynamicData->ulColor = anp_ColorHSV(usPixelHue, 255, 255);
+        pxDynamicData->ulColor = ulWheelColor((((ulPixelIndex * 0x0100) / (1 + ulPixelIndexEnd -
+          ulPixelIndexStart)) + ulWheelPosition) & 0xFF);
 //        ESP_LOGI(__ESP_FILE__, "pixel %u, red %u, green %u, blue%u", pxDynamicData->ulPixelIndex,
 //          pxDynamicData->ulColor >> 16 & 0xFF, pxDynamicData->ulColor >>  8 & 0xFF, pxDynamicData->ulColor & 0xFF);
-        pxDynamicDataPointerArray[ulPixelIndex - usPixelIndexStart] = pxDynamicData;
+        pxDynamicDataPointerArray[ulPixelIndex - ulPixelIndexStart] = pxDynamicData;
         xStreamBufferSend(*pxTestMessage->pxStreamBufferHandle, (void *) pxDynamicData, sizeof(struct xHwDynamicData),
           portMAX_DELAY);
+//        ESP_LOGI(__ESP_FILE__, "SB spaces avail %u", xStreamBufferSpacesAvailable(xHttpToSpiStreamBufferHandle));
       }
       xQueueSendToBack(xHttpToSpiQueueHandle, (void *) &pxTestMessage, portMAX_DELAY);
       xEventGroupSetBits(xHttpAndSpiEventGroupHandle, HW_BIT_SPI_TRANS_START);
       xEventGroupWaitBits(xHttpAndSpiEventGroupHandle, HW_BIT_SPI_TRANS_END, pdTRUE, pdTRUE, portMAX_DELAY);
       free(pxTestMessage->pxMetadata);
-      // Do a loop to free each of the xHwDynamicData structs, i.e. each pixel in the strip
-      for (uint16_t ulPixelIndex = usPixelIndexStart; ulPixelIndex < usPixelIndexEnd; ++ulPixelIndex) {
-        free(pxDynamicDataPointerArray[ulPixelIndex - usPixelIndexStart]);
+      for (uint32_t ulPixelIndex = ulPixelIndexStart; ulPixelIndex < ulPixelIndexEnd + 1; ++ulPixelIndex) {
+        free(pxDynamicDataPointerArray[ulPixelIndex - ulPixelIndexStart]);
       }
-      free(pxDynamicDataPointerArray);
       xEventGroupSetBits(xHttpAndSpiEventGroupHandle, HW_BIT_HTTP_MSG_MEM_FREE);
-      ESP_LOGI(__ESP_FILE__, "heap free: %u", esp_get_free_heap_size());
+//      ESP_LOGI(__ESP_FILE__, "mem free: %u", esp_get_free_heap_size());
+      vTaskDelayUntil(&xPreviousWakeTime, xTimeIncrement);
     }
+    free(pxDynamicDataPointerArray);
     free(pxTestMessage);
-    ESP_LOGI(__ESP_FILE__, "Task complete");
+//    ESP_LOGI(__ESP_FILE__, "Task complete");
 //    vTaskDelayUntil(&xFullTaskWakeTime, pdMS_TO_TICKS(300000));
   }
+}
+static uint32_t ulWheelColor(uint32_t ulPosition) {
+  ulPosition = 0xFF - ulPosition;
+  if (ulPosition < 0x55) {
+    return anp_Color_RGB(0xFF - (ulPosition * 3), 0, ulPosition * 3);
+  }
+  if (ulPosition < 0xAA) {
+    ulPosition -= 0x55;
+    return anp_Color_RGB(0, ulPosition * 3, 0xFF - (ulPosition * 3));
+  }
+  ulPosition -= 0xAA;
+  return anp_Color_RGB(ulPosition * 3, 0xFF - (ulPosition * 3), 0);
 }
 
 #ifdef __cplusplus

@@ -17,15 +17,12 @@ extern "C" {
 
 #include "esp_attr.h"
 #include "esp_log.h"
+#include "esp_system.h"
 
 #include "np_def.h"
 
 #include "anp_component.h"
 
-/*
- * Not used currently
- */
-extern TaskHandle_t xAnpStripTaskHandle;
 /*
  * Handles for receiving different kinds data from the SPI task
  */
@@ -34,9 +31,18 @@ extern EventGroupHandle_t xSpiAndAnpEventGroupHandle;
 //extern StreamBufferHandle_t xSpiToAnpStreamBufferHandle;
 extern StreamBufferHandle_t xSpiStreamBufferHandle;
 /*
+ * Task handles
+ */
+extern TaskHandle_t xDynamicDataTaskHandle;
+//extern TaskHandle_t xAnpStripTaskHandle;
+/*
  * Uses the Kconfig values for the strip length
  */
 void vNpSetupAnp(void);
+/*
+ * Deals solely with SPI stream buffer data
+ */
+void IRAM_ATTR vDynamicDataProcessTask(void *arg);
 /*
  * Schedule sub-processes to run dynamic / static patterns
  */

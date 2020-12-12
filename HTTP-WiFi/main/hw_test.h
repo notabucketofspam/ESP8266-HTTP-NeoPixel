@@ -31,11 +31,13 @@ extern StreamBufferHandle_t xHttpToSpiStreamBufferHandle;
 
 void test_spi_pattern_task(void *arg);
 
-void vHwTestSpiDynamicTask (void *arg);
+void vHwTestSpiDynamicTask(void *arg);
 
 void test_spi_pattern_array_task(void *arg);
 
 void vHwTestSpiDynamicTaskTwo(void *arg);
+
+void vHwTestSpiDynamicTaskThree(void *arg);
 
 #ifdef __cplusplus
 }

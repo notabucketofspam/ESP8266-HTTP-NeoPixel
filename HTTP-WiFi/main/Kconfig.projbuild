@@ -1,4 +1,14 @@
 menu "HTTP-WiFi configuration"
+  menu "LED configuration"
+    config HW_NEOPIXEL_COUNT
+      int "LED count"
+      range 1 4096
+      default 30
+      help
+        Number of pixels on the strand. Due to the single-strand limit, don't 
+        set this too high, or else signal degredation will occur.
+        Also, this is now used for calculating the size of the stream buffer.
+  endmenu
   menu "WiFi configuration"
     config HW_WIFI_SSID
       string "WiFi SSID"

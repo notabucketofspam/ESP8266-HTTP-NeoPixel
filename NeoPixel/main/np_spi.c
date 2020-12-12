@@ -26,19 +26,11 @@ extern "C" {
 /*
  * Whether or not the device is ready for more data
  */
-static BaseType_t xReadyFlag = pdTRUE;
+static BaseType_t xSpiReadyFlag = pdTRUE;
 /*
  * Number of data chunks received in the transmission
  */
 static uint32_t ulInitialDataReceiveBytes = 0;
-/*
- * Determines whether or not vNpSetupSpi has finished
- */
-static BaseType_t xNpSetupSpiComplete = pdFALSE;
-/*
- * Stream Buffer for receiving transmissions during the ISR
- */
-//static StreamBufferHandle_t xSpiInternalStreamBufferHandle = NULL;
 /*
  * Callback which pretty much only resumes the SPI read task
  * Just like everything else, it's mostly stolen from the Espressif SPI examples
@@ -50,18 +42,12 @@ static void IRAM_ATTR spi_event_callback(int event, void *arg);
 //static void print_pattern_data(struct xNpStaticData *pattern_data);
 
 static void IRAM_ATTR spi_event_callback(int event, void *arg) {
-  if (xNpSetupSpiComplete != pdTRUE) {
-    return;
-  }
   uint32_t ulTransmissionDone;
   uint32_t ulStatus;
   BaseType_t xHigherPriorityTaskWoken = pdFALSE;
   static uint32_t pulDataChunk[NP_DATA_CHUNK_SIZE / 4];
-  memset(pulDataChunk, 0x00, sizeof(pulDataChunk));
+//  memset(pulDataChunk, 0x00, sizeof(pulDataChunk));
   if (event == SPI_TRANS_DONE_EVENT) {
-    if (xReadyFlag != pdTRUE) {
-      return;
-    }
     gpio_set_level(CONFIG_NP_SPI_HANDSHAKE, 1);
     ulTransmissionDone = *(uint32_t *) arg; // Convert arg to a uint32_t pointer and subsequently dereference it
     if (ulTransmissionDone & SPI_SLV_WR_STA_DONE) {
@@ -69,27 +55,26 @@ static void IRAM_ATTR spi_event_callback(int event, void *arg) {
 //      ESP_EARLY_LOGI(__ESP_FILE__, "status: %u", ulStatus);
       if (ulStatus == 0x00) {
         // Resume the SPI read task only after all the data chunks have been sent
+        xSpiReadyFlag = xStreamBufferBytesAvailable(xSpiStreamBufferHandle) <
+          ulInitialDataReceiveBytes ? pdTRUE : pdFALSE;
+//        ESP_EARLY_LOGI(__ESP_FILE__, "avail at status 0: %u", xStreamBufferBytesAvailable(xSpiStreamBufferHandle));
         vTaskNotifyGiveFromISR(xSpiReadTaskHandle, &xHigherPriorityTaskWoken);
-        xReadyFlag = pdFALSE;
       } else {
         // This will be used later by the dynamic pattern section
         ulInitialDataReceiveBytes = ulStatus;
-        xReadyFlag = pdTRUE;
+        xSpiReadyFlag = pdTRUE;
       }
     }
     if (ulTransmissionDone & SPI_SLV_WR_BUF_DONE) {
       for (uint32_t ulPosition = 0; ulPosition < sizeof(pulDataChunk) / 4; ++ulPosition) {
         pulDataChunk[ulPosition] = SPI1.data_buf[ulPosition];
       }
-//      xStreamBufferSendFromISR(xSpiInternalStreamBufferHandle, (void *) pulDataChunk, sizeof(pulDataChunk),
-//        &xHigherPriorityTaskWoken);
       xStreamBufferSendFromISR(xSpiStreamBufferHandle, (void *) pulDataChunk, sizeof(pulDataChunk),
         &xHigherPriorityTaskWoken);
-//      ESP_EARLY_LOGI(__ESP_FILE__, "avail: %u", xStreamBufferBytesAvailable(xSpiInternalStreamBufferHandle));
-      xReadyFlag = pdTRUE;
+//      ESP_EARLY_LOGI(__ESP_FILE__, "avail at write: %u", xStreamBufferBytesAvailable(xSpiStreamBufferHandle));
     }
-//    ESP_EARLY_LOGI(__ESP_FILE__, "xReadyFlag: %d", xReadyFlag);
-    if (xReadyFlag != pdFALSE) {
+//    ESP_EARLY_LOGI(__ESP_FILE__, "xSpiReadyFlag: %d", xSpiReadyFlag);
+    if (xSpiReadyFlag == pdTRUE) {
       gpio_set_level(CONFIG_NP_SPI_HANDSHAKE, 0);
     }
     if (xHigherPriorityTaskWoken == pdTRUE) {
@@ -108,24 +93,11 @@ void vNpSetupSpi(void) {
   gpio_set_level(CONFIG_NP_SPI_HANDSHAKE, 1);
   spi_config_t spi_config = NP_SPI_CONFIG_DEFAULT(spi_event_callback);
   spi_init(HSPI_HOST, &spi_config);
-//  uint32_t ulRxBufferSizePattern = 0;
-//  #if CONFIG_NP_ENABLE_STATIC_PATTERN
-//    ulRxBufferSizePattern = NP_DATA_CHUNK_COUNT(sizeof(struct xNpMessageMetadata) +
-//      (CONFIG_NP_STATIC_PATTERN_ARRAY_SIZE * sizeof(struct xNpStaticData))) * NP_DATA_CHUNK_SIZE;
-//  #endif
-//  uint32_t ulRxBufferSizeDynamic = 0;
-//  #if CONFIG_NP_ENABLE_DYNAMIC_PATTERN
-//    ulRxBufferSizeDynamic = (NP_DATA_CHUNK_COUNT(sizeof(struct xNpMessageMetadata)) * NP_DATA_CHUNK_SIZE) +
-//      CONFIG_NP_STREAM_BUFFER_SIZE;
-//  #endif
-//  xSpiInternalStreamBufferHandle = xStreamBufferCreate((uint32_t)
-//    fmaxf(ulRxBufferSizePattern, ulRxBufferSizeDynamic), NP_DATA_CHUNK_SIZE);
-  xNpSetupSpiComplete = pdTRUE;
 }
 void IRAM_ATTR vNpSpiSlaveReadTask(void *arg) {
   // refer to hw_spi.h for some more documentation
-  static uint32_t pulDataChunk[NP_DATA_CHUNK_SIZE / 4];
-  memset(pulDataChunk, 0x00, sizeof(pulDataChunk));
+//  static uint32_t pulDataChunk[NP_DATA_CHUNK_SIZE / 4];
+//  memset(pulDataChunk, 0x00, sizeof(pulDataChunk));
   static struct xNpMessageMetadata xMetadataBuffer;
   // Minimum number of data chunks to contain xMetadataBuffer
   const uint32_t ulDataChunkCountMetadata = NP_DATA_CHUNK_COUNT(sizeof(struct xNpMessageMetadata));
@@ -133,22 +105,31 @@ void IRAM_ATTR vNpSpiSlaveReadTask(void *arg) {
     memset(&xMetadataBuffer, 0x00, sizeof(struct xNpMessageMetadata));
     ulTaskNotifyTake(pdTRUE, portMAX_DELAY); // Block until all of the SPI data chunks are received
 //    ESP_LOGI(__ESP_FILE__, "Task resume");
-    uint32_t ulRemainingDataReceiveBytes = ulInitialDataReceiveBytes; // Keep track of how much data we have left
-//    ESP_LOGI(__ESP_FILE__, "initial byte count: %u", ulRemainingDataReceiveBytes);
+//    uint32_t ulRemainingDataReceiveBytes = ulInitialDataReceiveBytes; // Keep track of how much data we have left
+//    ESP_LOGI(__ESP_FILE__, "initial byte count: %u", ulInitialDataReceiveBytes);
     // Read just the metadata first, then determine what to do with it afterwards based on the message xType
     for (uint32_t ulDataChunkIndex = 0; ulDataChunkIndex < ulDataChunkCountMetadata; ++ulDataChunkIndex) {
-      // Copy the minimum amount of data necessary to fill pxMetadataBuffer. Important because we don't want to
-      // over-read from the received data and potentially delete some of it
-      uint32_t ulDataReceiveBytes = (uint32_t) fminf(sizeof(pulDataChunk),
-        (sizeof(struct xNpMessageMetadata)) - (ulDataChunkIndex * sizeof(pulDataChunk)));
-//      xStreamBufferReceive(xSpiInternalStreamBufferHandle, (void *) pulDataChunk, ulDataReceiveBytes, portMAX_DELAY);
-      xStreamBufferReceive(xSpiStreamBufferHandle, (void *) pulDataChunk, ulDataReceiveBytes, portMAX_DELAY);
-      memcpy((void *) ((&xMetadataBuffer) + (ulDataChunkIndex * sizeof(pulDataChunk))), pulDataChunk,
-        ulDataReceiveBytes);
-      ulRemainingDataReceiveBytes -= ulDataReceiveBytes;
-      if (ulDataReceiveBytes == sizeof(pulDataChunk)) {
-        memset(pulDataChunk, 0x00, sizeof(pulDataChunk));
-      }
+//      ESP_LOGI(__ESP_FILE__, "ulDataChunkIndex: %u", ulDataChunkIndex);
+      // Copy the minimum amount of data necessary to fill pxMetadataBuffer.
+      // Important because we don't want to over-read from the received data
+      // and potentially delete some of it
+//      uint32_t ulDataReceiveBytes = (uint32_t) fminf(sizeof(pulDataChunk),
+//        (sizeof(struct xNpMessageMetadata)) - (ulDataChunkIndex * sizeof(pulDataChunk)));
+      uint32_t ulDataReceiveBytes = sizeof(struct xNpMessageMetadata) - (ulDataChunkIndex * NP_DATA_CHUNK_SIZE);
+//      ESP_LOGI(__ESP_FILE__, "ulDataReceiveBytes: %u", ulDataReceiveBytes);
+//      xStreamBufferReceive(xSpiStreamBufferHandle, (void *) pulDataChunk, ulDataReceiveBytes, portMAX_DELAY);
+//      memcpy((void *) (&xMetadataBuffer) + (ulDataChunkIndex * sizeof(pulDataChunk)), pulDataChunk,
+//        ulDataReceiveBytes);
+//      xStreamBufferReceive(xSpiStreamBufferHandle, (void *) (&xMetadataBuffer) + (ulDataChunkIndex *
+//        sizeof(pulDataChunk)), ulDataReceiveBytes, portMAX_DELAY);
+//      ESP_LOGI(__ESP_FILE__, "bytes before receive: %u", xStreamBufferBytesAvailable(xSpiStreamBufferHandle));
+      xStreamBufferReceive(xSpiStreamBufferHandle, (void *) (&xMetadataBuffer) + (ulDataChunkIndex *
+        NP_DATA_CHUNK_SIZE), ulDataReceiveBytes, portMAX_DELAY);
+//      ESP_LOGI(__ESP_FILE__, "bytes after receive: %u", xStreamBufferBytesAvailable(xSpiStreamBufferHandle));
+//      ulRemainingDataReceiveBytes -= ulDataReceiveBytes;
+//      if (ulDataReceiveBytes == sizeof(pulDataChunk)) {
+//        memset(pulDataChunk, 0x00, sizeof(pulDataChunk));
+//      }
     }
 //    ESP_LOGI(__ESP_FILE__, "%s", xMetadataBuffer.pcName);
     if (xMetadataBuffer.xType == STATIC_PATTERN_DATA) {
@@ -191,9 +172,10 @@ void IRAM_ATTR vNpSpiSlaveReadTask(void *arg) {
 //          ESP_LOGI(__ESP_FILE__, "counter   : %u", ulRemainingDataReceiveBytes);
         }
         */
+//        ESP_LOGI(__ESP_FILE__, "bytes left: %u", xStreamBufferBytesAvailable(xSpiStreamBufferHandle));
         xEventGroupSetBits(xSpiAndAnpEventGroupHandle, NP_BIT_ANP_DYNAMIC_START);
         xEventGroupWaitBits(xSpiAndAnpEventGroupHandle, NP_BIT_ANP_DYNAMIC_END, pdTRUE, pdTRUE, portMAX_DELAY);
-        xReadyFlag = pdTRUE;
+        xSpiReadyFlag = pdTRUE;
         gpio_set_level(CONFIG_NP_SPI_HANDSHAKE, 0);
 //        vTaskDelay(1);
         gpio_set_level(CONFIG_NP_SPI_HANDSHAKE, 1);
