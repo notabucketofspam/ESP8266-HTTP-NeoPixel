@@ -12,12 +12,12 @@ menu "HTTP-WiFi configuration"
   menu "WiFi configuration"
     config HW_WIFI_SSID
       string "WiFi SSID"
-      default "myssid"
+      default "AzureDiamond"
       help
         SSID (network name) to connect to.
     config HW_WIFI_PASSWORD
       string "WiFi Password"
-      default "mypassword"
+      default "hunter2"
       help
         WiFi password (WPA or WPA2) to use.
     menuconfig HW_STATIC_IP_ADDR
@@ -26,26 +26,93 @@ menu "HTTP-WiFi configuration"
       help
         Useful for finding the HTTP-WiFi device on a large network.
         Make sure to reserve its MAC on your access point as well.
-    config HW_IP_ADDR_1
+    menu "IP address"
       depends on HW_STATIC_IP_ADDR
-      int "IP address part 1"
-      range 0 255
-      default 192
-    config HW_IP_ADDR_2
+      config HW_IP_ADDR_1
+        int "IP address part 1"
+        range 0 255
+        default 192
+      config HW_IP_ADDR_2
+        int "IP address part 2"
+        range 0 255
+        default 168
+      config HW_IP_ADDR_3
+        int "IP address part 3"
+        range 0 255
+        default 1
+      config HW_IP_ADDR_4
+        int "IP address part 4"
+        range 0 255
+        default 2
+    endmenu
+    menu "Netmask"
       depends on HW_STATIC_IP_ADDR
-      int "IP address part 2"
-      range 0 255
-      default 168
-    config HW_IP_ADDR_3
+      config HW_NETMASK_ADDR_1
+        int "Netmask part 1"
+        range 0 255
+        default 255
+      config HW_NETMASK_ADDR_2
+        int "Netmask part 2"
+        range 0 255
+        default 255
+      config HW_NETMASK_ADDR_3
+        int "Netmask part 3"
+        range 0 255
+        default 255
+      config HW_NETMASK_ADDR_4
+        int "Netmask part 4"
+        range 0 255
+        default 0
+    endmenu
+    menu "Gateway address"
       depends on HW_STATIC_IP_ADDR
-      int "IP address part 3"
-      range 0 255
-      default 1
-    config HW_IP_ADDR_4
-      depends on HW_STATIC_IP_ADDR
-      int "IP address part 4"
-      range 0 255
-      default 2
+      config HW_GW_ADDR_1
+        int "Gateway address part 1"
+        range 0 255
+        default 192
+      config HW_GW_ADDR_2
+        int "Gateway address part 2"
+        range 0 255
+        default 168
+      config HW_GW_ADDR_3
+        int "Gateway address part 3"
+        range 0 255
+        default 1
+      config HW_GW_ADDR_4
+        int "Gateway address part 4"
+        range 0 255
+        default 1
+    endmenu
+    config HW_WIFI_TIMEOUT
+      int "Connection timeout"
+      range 1 300
+      default 30
+      help
+        Time in seconds before WiFi connection is deemed a failure.
+    config HW_WIFI_RETRY_MAX
+      int "Retry connection maximum"
+      range 0 100
+      default 6
+      help
+        Number of times to attempt to connect to WiFi before giving up and
+        restarting the device.
+    choice HW_WIFI_PROTOCOL_SELECT
+      prompt "WiFi protocol"
+      default HW_WIFI_PROTOCOL_BG
+      help
+        Which combination of IEEE 802.11 network PHY standards to utilize
+      config HW_WIFI_PROTOCOL_B
+        bool "802.11b"
+      config HW_WIFI_PROTOCOL_BG
+        bool "802.11bg"
+      config HW_WIFI_PROTOCOL_BGN
+        bool "802.11bgn"
+    endchoice
+    config HW_WIFI_PROTOCOL
+      int
+      default 1 if HW_WIFI_PROTOCOL_B
+      default 3 if HW_WIFI_PROTOCOL_BG
+      default 7 if HW_WIFI_PROTOCOL_BGN
   endmenu
   menu "SPI configuration"
     config HW_SPI_HANDSHAKE
@@ -140,5 +207,6 @@ menu "HTTP-WiFi configuration"
         Note that each pixel requires 8-bytes; 4-bytes for the pixel index bitfield, and
         4-bytes for the color.
         TLDR: roof(NEOPIXEL_COUNT * 8 / 64) * 64
+        Update: this value is no longer used, set NeoPixel count instead.
   endmenu
 endmenu

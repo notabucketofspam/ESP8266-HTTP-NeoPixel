@@ -281,6 +281,104 @@ static uint32_t ulWheelColor(uint32_t ulPosition) {
   ulPosition -= 0xAA;
   return anp_Color_RGB(ulPosition * 3, 0xFF - (ulPosition * 3), 0);
 }
+void vHwPrintIpTask(void *arg) {
+  tcpip_adapter_ip_info_t xIpInfoSta;
+    tcpip_adapter_dhcp_status_t xDhcpcStatus;
+  for (;;) {
+    tcpip_adapter_get_ip_info(TCPIP_ADAPTER_IF_STA, &xIpInfoSta);
+    ESP_LOGI(__ESP_FILE__, "IP " IPSTR, IP2STR(&xIpInfoSta.ip));
+    tcpip_adapter_dhcpc_get_status(TCPIP_ADAPTER_IF_STA, &xDhcpcStatus);
+//    switch (xDhcpcStatus) {
+//      case (TCPIP_ADAPTER_DHCP_INIT): {
+//        ESP_LOGI(__ESP_FILE__, "DHCPC status: TCPIP_ADAPTER_DHCP_INIT");
+//        break;
+//      }
+//      case (TCPIP_ADAPTER_DHCP_STARTED): {
+//        ESP_LOGI(__ESP_FILE__, "DHCPC status: TCPIP_ADAPTER_DHCP_STARTED");
+//        break;
+//      }
+//      case (TCPIP_ADAPTER_DHCP_STOPPED): {
+//        ESP_LOGI(__ESP_FILE__, "DHCPC status: TCPIP_ADAPTER_DHCP_STOPPED");
+//        break;
+//      }
+//      case (TCPIP_ADAPTER_DHCP_STATUS_MAX): {
+//        ESP_LOGI(__ESP_FILE__, "DHCPC status: TCPIP_ADAPTER_DHCP_STATUS_MAX");
+//        break;
+//      }
+//      default: {
+//        ESP_LOGI(__ESP_FILE__, "DHCPC status: NaN");
+//        break;
+//      }
+//    }
+    vTaskDelay(pdMS_TO_TICKS(4000));
+  }
+}
+char *pcHwResetReason(void) {
+  switch (esp_reset_reason()) {
+    case (0): {
+      return "ESP_RST_UNKNOWN";
+      break;
+    }
+    case (1): {
+      return "ESP_RST_POWERON";
+      break;
+    }
+    case (2): {
+      return "ESP_RST_EXT";
+      break;
+    }
+    case (3): {
+      return "ESP_RST_SW";
+      break;
+    }
+    case (4): {
+      return "ESP_RST_PANIC";
+      break;
+    }
+    case (5): {
+      return "ESP_RST_INT_WDT";
+      break;
+    }
+    case (6): {
+      return "ESP_RST_TASK_WDT";
+      break;
+    }
+    case (7): {
+      return "ESP_RST_WDT";
+      break;
+    }
+    case (8): {
+      return "ESP_RST_DEEPSLEEP";
+      break;
+    }
+    case (9): {
+      return "ESP_RST_BROWNOUT";
+      break;
+    }
+    case (10): {
+      return "ESP_RST_SDIO";
+      break;
+    }
+    case (11): {
+      return "ESP_RST_FAST_SW";
+      break;
+    }
+    default: {
+      return "I have no idea lol";
+      break;
+    }
+  }
+  return "Something ain't right here";
+}
+void vHwPrintTicksTask(void *arg) {
+  TickType_t xPreviousWakeTime = xTaskGetTickCount();
+  const TickType_t xTimeIncrement = pdMS_TO_TICKS(10000);
+  for (;;) {
+    vTaskDelayUntil(&xPreviousWakeTime, xTimeIncrement);
+    ESP_LOGI(__ESP_FILE__, "xPreviousWakeTime %u", xPreviousWakeTime);
+    taskYIELD();
+  }
+}
 
 #ifdef __cplusplus
 }

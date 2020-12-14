@@ -34,7 +34,13 @@ QueueHandle_t xSpiToAnpQueueHandle = NULL;
 EventGroupHandle_t xSpiAndAnpEventGroupHandle = NULL;
 StreamBufferHandle_t xSpiStreamBufferHandle = NULL;
 
-// TODO: make sure that anp_pinMode() doesn't interfere with the handshake pin
+// TODO: Design of pattern part of the code
+// Everything is processed in a single task, as described below
+// Use one of those Arduino examples of "wait without delay" that includes rollover protection,
+// this prevents us from having to determine when to delay for different patterns in separate segments
+// Each pattern gets its own section in the task
+// Have an array / bitfield specifying which pixels are assigned to what patterns,
+// every sub-section checks against this array before calling setPixelColor()
 
 void app_main(void) {
   xSpiToAnpQueueHandle = xQueueCreate(CONFIG_NP_QUEUE_SIZE, sizeof(struct xNpMessage *));

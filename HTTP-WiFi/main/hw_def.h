@@ -28,6 +28,9 @@ extern "C" {
 #define HW_BIT_HTTP_MSG_MEM_FREE BIT(1) // Message data memory from the HTTP task has been freed
 #define HW_BIT_SPI_TRANS_START BIT(2) // Ready to start SPI transfer
 #define HW_BIT_SPI_TRANS_CONTINUE BIT(3) // Intermediate block in SPI transfer, after waiting for the GPIO interrupt
+#define HW_BIT_WIFI_STA_CONNECT BIT(4) // Connection to AP successful
+#define HW_BIT_WIFI_IP_GET BIT(5) // IP received
+#define HW_BIT_WIFI_STA_START BIT(6) // Station began
 /*
  * Type of message in the queue
  */

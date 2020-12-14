@@ -20,6 +20,7 @@ extern "C" {
 
 #include "esp_log.h"
 #include "esp_system.h"
+#include "tcpip_adapter.h"
 
 #include "hw_def.h"
 
@@ -38,6 +39,12 @@ void test_spi_pattern_array_task(void *arg);
 void vHwTestSpiDynamicTaskTwo(void *arg);
 
 void vHwTestSpiDynamicTaskThree(void *arg);
+
+void vHwPrintIpTask(void *arg);
+
+char *pcHwResetReason(void);
+
+void vHwPrintTicksTask(void *arg);
 
 #ifdef __cplusplus
 }

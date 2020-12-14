@@ -70,5 +70,6 @@ menu "NeoPixel configuration"
       help
         Refer to HTTP-WiFi for documentation.
         TLDR: roof(NEOPIXEL_COUNT * 8 / 64) * 64
+        Update: this value is no longer used, set NeoPixel count instead.
   endmenu
 endmenu

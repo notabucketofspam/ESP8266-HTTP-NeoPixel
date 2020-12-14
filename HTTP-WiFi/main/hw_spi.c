@@ -270,6 +270,7 @@ void IRAM_ATTR vHwSpiMasterWriteTask(void *arg) {
 //          uint32_t ulDynamicDataIndex = ulInitialStreamBufferBytes / sizeof(struct xHwDynamicData);
           uint32_t ulRemainingStreamBufferBytes = ulInitialStreamBufferBytes;
           // Send the dynamic pattern data itself
+          // No, I don't know why it's plus one in the middle, stop asking.
           for (uint32_t ulDataChunkIndex = 0; ulDataChunkIndex < ulDataChunkCountStreamBuffer + 1; ++ulDataChunkIndex) {
             // Minimum data to transmit; will max out at sizeof(pulDataChunk)
             uint32_t ulDataTransmitAmount = (uint32_t) fminf(sizeof(pulDataChunk) - ulDataChunkPosition.bValue,
