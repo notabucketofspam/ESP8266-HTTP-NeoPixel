@@ -15,7 +15,8 @@ menu "NeoPixel configuration"
       help
         Number of pixels on the strand. Due to the single-strand limit, don't 
         set this too high, or else signal degredation will occur.
-        Also, this is now used for calculating the size of the stream buffer.
+        Also, this is used for calculating the size of the stream buffer for
+        all inputs regardless of type.
   endmenu
   menu "SPI configuration"
     config NP_SPI_HANDSHAKE
@@ -41,8 +42,6 @@ menu "NeoPixel configuration"
       help
         Receive commands from the HTTP-WiFi device specifying predetermined
         pixel-changing patterns.
-        This is more stable than the dynamic patterns, but takes significantly
-        more memory due to each specified segment having its own task.
     config NP_STATIC_PATTERN_ARRAY_SIZE
       depends on NP_ENABLE_STATIC_PATTERN
       int "Static pattern array size"
@@ -52,24 +51,15 @@ menu "NeoPixel configuration"
         Number of static pattern structs to be able to receive grouped together 
         at one time. Each pattern data transmission will have a metadata struct
         and several static pattern structs.
-    menuconfig NP_ENABLE_DYNAMIC_PATTERN
+    config NP_ENABLE_DYNAMIC_PATTERN
       bool "Enable dynamic pattern support"
       default n
       help
         Receive custom commands directly from the HTTP-WiFi device, allowing for much
         more fine-grained control.
-        Please note that this is very computationally expensive in all regards, as well as
-        being experimental / unstable in general. On the other hand, it 
-        (theoretically) takes less RAM to utilize, since all commands are 
-        processed in a single task.
-    config NP_STREAM_BUFFER_SIZE
-      depends on NP_ENABLE_DYNAMIC_PATTERN
-      int "SPI to ANP stream buffer size"
-      range 64 32768
-      default 2048
-      help
-        Refer to HTTP-WiFi for documentation.
-        TLDR: roof(NEOPIXEL_COUNT * 8 / 64) * 64
-        Update: this value is no longer used, set NeoPixel count instead.
+        Please note that this is very computationally expensive in all regards, 
+        as well as being experimental / unstable in general. It's primarily
+        for the case when OTA updates are in use, and thus only the HTTP-WiFi
+        device can be outfitted with new patterns.
   endmenu
 endmenu

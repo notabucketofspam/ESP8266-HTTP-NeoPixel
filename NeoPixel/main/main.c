@@ -51,7 +51,7 @@ void app_main(void) {
 //    ESP_LOGI(__ESP_FILE__, "ulStreamBufferSize %u", ulStreamBufferSize);
     xSpiStreamBufferHandle = xStreamBufferCreate(ulStreamBufferSize, NP_DATA_CHUNK_SIZE);
   #endif
-  xTaskCreate(vDynamicDataProcessTask, "vDynamicDataProcessTask", 2048, NULL, 4, &xDynamicDataTaskHandle);
+  xTaskCreate(vDynamicDataProcessTask, "vDynamicDataProcessTask", 2048, NULL, 5, &xDynamicDataTaskHandle);
   vNpSetupAnp();
   xTaskCreate(vNpSpiSlaveReadTask, "xNpSpiSlaveReadTask", 2048, NULL, 4, &xSpiReadTaskHandle);
   // SPI setup has to happen after the task has started because the event

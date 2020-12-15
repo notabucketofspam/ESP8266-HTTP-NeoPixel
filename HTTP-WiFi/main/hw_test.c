@@ -315,51 +315,51 @@ void vHwPrintIpTask(void *arg) {
 }
 char *pcHwResetReason(void) {
   switch (esp_reset_reason()) {
-    case (0): {
+    case (ESP_RST_UNKNOWN): {
       return "ESP_RST_UNKNOWN";
       break;
     }
-    case (1): {
+    case (ESP_RST_POWERON): {
       return "ESP_RST_POWERON";
       break;
     }
-    case (2): {
+    case (ESP_RST_EXT): {
       return "ESP_RST_EXT";
       break;
     }
-    case (3): {
+    case (ESP_RST_SW): {
       return "ESP_RST_SW";
       break;
     }
-    case (4): {
+    case (ESP_RST_PANIC): {
       return "ESP_RST_PANIC";
       break;
     }
-    case (5): {
+    case (ESP_RST_INT_WDT): {
       return "ESP_RST_INT_WDT";
       break;
     }
-    case (6): {
+    case (ESP_RST_TASK_WDT): {
       return "ESP_RST_TASK_WDT";
       break;
     }
-    case (7): {
+    case (ESP_RST_WDT): {
       return "ESP_RST_WDT";
       break;
     }
-    case (8): {
+    case (ESP_RST_DEEPSLEEP): {
       return "ESP_RST_DEEPSLEEP";
       break;
     }
-    case (9): {
+    case (ESP_RST_BROWNOUT): {
       return "ESP_RST_BROWNOUT";
       break;
     }
-    case (10): {
+    case (ESP_RST_SDIO): {
       return "ESP_RST_SDIO";
       break;
     }
-    case (11): {
+    case (ESP_RST_FAST_SW): {
       return "ESP_RST_FAST_SW";
       break;
     }
@@ -370,13 +370,13 @@ char *pcHwResetReason(void) {
   }
   return "Something ain't right here";
 }
-void vHwPrintTicksTask(void *arg) {
+void vHwPrintTimeTask(void *arg) {
   TickType_t xPreviousWakeTime = xTaskGetTickCount();
-  const TickType_t xTimeIncrement = pdMS_TO_TICKS(10000);
+  const TickType_t xTimeIncrement = pdMS_TO_TICKS(((uint32_t) 60) * 1000);
   for (;;) {
     vTaskDelayUntil(&xPreviousWakeTime, xTimeIncrement);
-    ESP_LOGI(__ESP_FILE__, "xPreviousWakeTime %u", xPreviousWakeTime);
-    taskYIELD();
+    ESP_LOGI(__ESP_FILE__, "minutes %u, mem free %u", xPreviousWakeTime / configTICK_RATE_HZ / 60,
+      esp_get_free_heap_size());
   }
 }
 

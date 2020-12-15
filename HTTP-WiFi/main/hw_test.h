@@ -18,6 +18,7 @@ extern "C" {
 #include "freertos/queue.h"
 #include "freertos/stream_buffer.h"
 
+#include "esp_attr.h"
 #include "esp_log.h"
 #include "esp_system.h"
 #include "tcpip_adapter.h"
@@ -44,7 +45,7 @@ void vHwPrintIpTask(void *arg);
 
 char *pcHwResetReason(void);
 
-void vHwPrintTicksTask(void *arg);
+void vHwPrintTimeTask(void *arg);
 
 #ifdef __cplusplus
 }

@@ -1,2 +1,4 @@
-# Auto detect text files and perform LF normalization
 * text=auto
+*.projbuild text eol=lf
+*.defaults text eol=lf
+*.csv text eol=lf

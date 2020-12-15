@@ -15,6 +15,7 @@ extern "C" {
 #include "esp_log.h"
 #include "esp_err.h"
 #include "esp_event.h"
+#include "esp_event_base.h"
 #include "esp_system.h"
 #include "esp_wifi.h"
 #include "esp_wifi_types.h"
@@ -25,7 +26,7 @@ extern "C" {
 
 /*
  * Concise way of starting the WiFi
- * Uses the Kconfig values for the static IP address if enabled.
+ * Uses the Kconfig values for the static IP address if enabled, among other things.
  */
 void vHwSetupWifi(void);
 

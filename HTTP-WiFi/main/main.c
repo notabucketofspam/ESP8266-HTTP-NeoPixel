@@ -37,26 +37,31 @@ EventGroupHandle_t xHttpAndSpiEventGroupHandle = NULL;
 StreamBufferHandle_t xHttpToSpiStreamBufferHandle = NULL;
 
 /*
+ * TODO: split dynamic / static patterns into dedicated source and header files
+ * Have like a dozen slots for dynamic patterns, accessible from the HTML interface
+ */
+
+/*
  * This is all the task creation, peripheral initialization, etc
  */
 void app_main(void) {
-  ESP_LOGI(__ESP_FILE__, "Reset reason: %s", pcHwResetReason());
+  ESP_LOGE(__ESP_FILE__, "Reset reason: %s", pcHwResetReason());
   xHttpToSpiQueueHandle = xQueueCreate(CONFIG_HW_QUEUE_SIZE, sizeof(struct xHwMessage *));
   xHttpAndSpiEventGroupHandle = xEventGroupCreate();
   #if CONFIG_HW_ENABLE_DYNAMIC_PATTERN
     xHttpToSpiStreamBufferHandle = xStreamBufferCreate(CONFIG_HW_NEOPIXEL_COUNT * sizeof(struct xHwDynamicData),
     HW_DATA_CHUNK_SIZE);
   #endif
+  vHwSetupWifi();
   xTaskCreate(vHwSpiMasterWriteTask, "vHwSpiMasterWriteTask", 2048, NULL, 4, &xSpiWriteTaskHandle);
   vHwSetupSpi();
-  vHwSetupWifi();
 //  xTaskCreate(vHwPrintIpTask, "vHwPrintIpTask", 2048, NULL, 3, NULL);
-  xTaskCreate(vHwPrintTicksTask, "vHwPrintTicksTask", 2048, NULL, 3, NULL);
+  xTaskCreate(vHwPrintTimeTask, "vHwPrintTimeTask", 2048, NULL, 3, NULL);
   vTaskDelay(1000 / portTICK_PERIOD_MS);
 //  xTaskCreate(test_spi_pattern_task, "test_spi_pattern_task", 2048, NULL, 3, &xHttpServerTaskHandle);
 //  xTaskCreate(test_spi_pattern_array_task, "test_spi_pattern_array_task", 2048, NULL, 3, &xHttpServerTaskHandle);
 //  xTaskCreate(vHwTestSpiDynamicTask, "vHwTestSpiDynamicTask", 2048, NULL, 3, &xHttpServerTaskHandle);
 //  xTaskCreate(vHwTestSpiDynamicTaskTwo, "vHwTestSpiDynamicTaskTwo", 2048, NULL, 3, &xHttpServerTaskHandle);
   xTaskCreate(vHwTestSpiDynamicTaskThree, "vHwTestSpiDynamicTaskThree", 2048, NULL, 3, &xHttpServerTaskHandle);
-  ESP_LOGI(__ESP_FILE__, "app_main done");
+  ESP_LOGV(__ESP_FILE__, "app_main done");
 }

@@ -7,22 +7,23 @@ menu "HTTP-WiFi configuration"
       help
         Number of pixels on the strand. Due to the single-strand limit, don't 
         set this too high, or else signal degredation will occur.
-        Also, this is now used for calculating the size of the stream buffer.
+        Also, this is used for calculating the size of the stream buffer for
+        dynamic patterns.
   endmenu
   menu "WiFi configuration"
     config HW_WIFI_SSID
       string "WiFi SSID"
       default "AzureDiamond"
       help
-        SSID (network name) to connect to.
+        Name of the network to connect to.
     config HW_WIFI_PASSWORD
-      string "WiFi Password"
+      string "WiFi password"
       default "hunter2"
       help
-        WiFi password (WPA or WPA2) to use.
+        "you can go hunter2 my hunter2-ing hunter2"
     menuconfig HW_STATIC_IP_ADDR
       bool "Enable static IP address"
-      default y
+      default n
       help
         Useful for finding the HTTP-WiFi device on a large network.
         Make sure to reserve its MAC on your access point as well.
@@ -100,7 +101,7 @@ menu "HTTP-WiFi configuration"
       prompt "WiFi protocol"
       default HW_WIFI_PROTOCOL_BG
       help
-        Which combination of IEEE 802.11 network PHY standards to utilize
+        Which combination of IEEE 802.11 network PHY standards to utilize.
       config HW_WIFI_PROTOCOL_B
         bool "802.11b"
       config HW_WIFI_PROTOCOL_BG
@@ -113,6 +114,14 @@ menu "HTTP-WiFi configuration"
       default 1 if HW_WIFI_PROTOCOL_B
       default 3 if HW_WIFI_PROTOCOL_BG
       default 7 if HW_WIFI_PROTOCOL_BGN
+    config HW_WIFI_SAVE_RAM
+      bool "Save some RAM"
+      default n
+      help
+        Setting this option to true means that the device will only be able to connect
+        to WiFi once during setup and then never again until it restarts, since 
+        the event hanndler for managing WiFi connections gets unregistered.
+        Probably a bad idea in most situations.
   endmenu
   menu "SPI configuration"
     config HW_SPI_HANDSHAKE
@@ -174,8 +183,6 @@ menu "HTTP-WiFi configuration"
       help
         Send commands to the NeoPixel device specifying predetermined
         pixel-changing patterns.
-        This is more stable than the dynamic patterns, but takes significantly
-        more memory due to each specified segment having its own task.
     config HW_STATIC_PATTERN_ARRAY_SIZE
       depends on HW_ENABLE_STATIC_PATTERN
       int "Static pattern array size"
@@ -185,28 +192,15 @@ menu "HTTP-WiFi configuration"
         Number of static pattern structs to be able to send grouped together 
         at one time. Each pattern data transmission will have a metadata struct
         and several static pattern structs.
-    menuconfig HW_ENABLE_DYNAMIC_PATTERN
+    config HW_ENABLE_DYNAMIC_PATTERN
       bool "Enable dynamic pattern support"
       default n
       help
         Send custom commands directly to the NeoPixel device, allowing for much
         more fine-grained control.
-        Please note that this is very computationally expensive in all regards, as well as
-        being experimental / unstable in general. On the other hand, it 
-        (theoretically) takes less RAM to utilize, since all commands are 
-        processed in a single task.
-    config HW_STREAM_BUFFER_SIZE
-      depends on HW_ENABLE_DYNAMIC_PATTERN
-      int "HTTP to SPI stream buffer size"
-      range 64 32768
-      default 2048
-      help
-        Used for dynamic patterns. Don't set it too low if doing complex things.
-        Keep in mind that SPI transfers on the ESP8266 are always a max of 
-        64-bytes at a time, so please make this a multiple of 64 if you can.
-        Note that each pixel requires 8-bytes; 4-bytes for the pixel index bitfield, and
-        4-bytes for the color.
-        TLDR: roof(NEOPIXEL_COUNT * 8 / 64) * 64
-        Update: this value is no longer used, set NeoPixel count instead.
+        Please note that this is very computationally expensive in all regards, 
+        as well as being experimental / unstable in general. It's primarily
+        for the case when OTA updates are in use, and thus only the HTTP-WiFi
+        device can be outfitted with new patterns.
   endmenu
 endmenu
