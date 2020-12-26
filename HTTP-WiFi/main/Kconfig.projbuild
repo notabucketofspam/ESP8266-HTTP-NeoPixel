@@ -6,7 +6,7 @@ menu "HTTP-WiFi configuration"
       default 30
       help
         Number of pixels on the strand. Due to the single-strand limit, don't 
-        set this too high, or else signal degredation will occur.
+        set this too high, or else signal degredation may occur.
         Also, this is used for calculating the size of the stream buffer for
         dynamic patterns.
   endmenu
@@ -25,78 +25,37 @@ menu "HTTP-WiFi configuration"
       bool "Enable static IP address"
       default n
       help
-        Useful for finding the HTTP-WiFi device on a large network.
-        Make sure to reserve its MAC on your access point as well.
-    menu "IP address"
+        Useful for finding the HTTP-WiFi device on a large network. Make sure to
+        reserve its MAC on your access point as well, be that the default or a
+        custom one set below. Keep addresses in the standard IPv4 notation, 
+        as in 192.168.1.1, with leading zeros omitted.
+    config HW_IP_ADDR
       depends on HW_STATIC_IP_ADDR
-      config HW_IP_ADDR_1
-        int "IP address part 1"
-        range 0 255
-        default 192
-      config HW_IP_ADDR_2
-        int "IP address part 2"
-        range 0 255
-        default 168
-      config HW_IP_ADDR_3
-        int "IP address part 3"
-        range 0 255
-        default 1
-      config HW_IP_ADDR_4
-        int "IP address part 4"
-        range 0 255
-        default 2
-    endmenu
-    menu "Netmask"
+      string "IP address"
+      default "192.168.1.2"
+    config HW_NETMASK_ADDR
       depends on HW_STATIC_IP_ADDR
-      config HW_NETMASK_ADDR_1
-        int "Netmask part 1"
-        range 0 255
-        default 255
-      config HW_NETMASK_ADDR_2
-        int "Netmask part 2"
-        range 0 255
-        default 255
-      config HW_NETMASK_ADDR_3
-        int "Netmask part 3"
-        range 0 255
-        default 255
-      config HW_NETMASK_ADDR_4
-        int "Netmask part 4"
-        range 0 255
-        default 0
-    endmenu
-    menu "Gateway address"
+      string "Netmask"
+      default "255.255.255.0"
+    config HW_GW_ADDR
       depends on HW_STATIC_IP_ADDR
-      config HW_GW_ADDR_1
-        int "Gateway address part 1"
-        range 0 255
-        default 192
-      config HW_GW_ADDR_2
-        int "Gateway address part 2"
-        range 0 255
-        default 168
-      config HW_GW_ADDR_3
-        int "Gateway address part 3"
-        range 0 255
-        default 1
-      config HW_GW_ADDR_4
-        int "Gateway address part 4"
-        range 0 255
-        default 1
-    endmenu
-    config HW_WIFI_TIMEOUT
-      int "Connection timeout"
-      range 1 300
-      default 30
+      string "Gateway address"
+      default "192.168.1.1"
+    menuconfig HW_SPECIFY_MAC_ADDR
+      bool "Specify MAC address"
+      default n
       help
-        Time in seconds before WiFi connection is deemed a failure.
-    config HW_WIFI_RETRY_MAX
-      int "Retry connection maximum"
-      range 0 100
-      default 6
+        Whether or not to use the built-in station MAC address or a user-input 
+        one. Setting it to true implies the latter.
+    config HW_MAC_ADDR
+      depends on HW_SPECIFY_MAC_ADDR
+      string "MAC address"
+      default "1A:2B:3C:4D:5E:6F"
       help
-        Number of times to attempt to connect to WiFi before giving up and
-        restarting the device.
+        According to Espressif, bit 0 of byte 0 cannot be 1, i.e. byte 0 cannot
+        be an odd number. For example, 1A:xx:xx:xx:xx:xx is acceptable but
+        15:xx:xx:xx:xx:xx is not. Also, please keep it in the above format, 
+        otherwise things break at runtime.
     choice HW_WIFI_PROTOCOL_SELECT
       prompt "WiFi protocol"
       default HW_WIFI_PROTOCOL_BG
@@ -114,14 +73,53 @@ menu "HTTP-WiFi configuration"
       default 1 if HW_WIFI_PROTOCOL_B
       default 3 if HW_WIFI_PROTOCOL_BG
       default 7 if HW_WIFI_PROTOCOL_BGN
-    config HW_WIFI_SAVE_RAM
-      bool "Save some RAM"
-      default n
+    config HW_WIFI_TIMEOUT
+      int "Connection timeout"
+      range -1 3600
+      default 30
       help
-        Setting this option to true means that the device will only be able to connect
-        to WiFi once during setup and then never again until it restarts, since 
-        the event hanndler for managing WiFi connections gets unregistered.
-        Probably a bad idea in most situations.
+        Time in seconds before WiFi connection is deemed a failure. Setting 
+        this to -1 will disable the feature, thus setting the timeout to 
+        portMAX_DELAY (effectively infinite).
+    config HW_WIFI_RETRY_MAX
+      int "Retry connection maximum"
+      range -1 1000
+      default 10
+      help
+        Number of times to attempt to connect to WiFi before giving up and
+        restarting the device. Setting this to -1 will disable the feature,
+        meaning that the device will never restart upon connection failure.
+    config HW_WIFI_KEEP_EVENT_HANDLER
+      bool "Keep connection event handler"
+      default y
+      help
+        Setting this option to false will deregister the event handler for
+        managing WiFi communications once the first connection is made;
+        consequently, a small amount of RAM is saved by doing so.
+  endmenu
+  menu "HTTPD configuration"
+    config HW_INDEX_HTML_GET_RESP_BUF_SIZE
+      int "index.html GET response buffer size"
+      range 1 8192
+      default 256
+      help
+        Size of the buffer used for the response to a GET request for the
+        index.html file, or more accurately for the base path which displays 
+        said file (since index.html redirects to the base path).
+    config HW_FAVICON_PNG_GET_RESP_BUF_SIZE
+      int "favicon.png GET response buffer size"
+      range 1 8192
+      default 256
+      help
+        Size of the buffer used for the response to a GET request for the
+        favicon.png file, which is requested alongside the base path.
+    config HW_FAVICON_ICO_GET_RESP_BUF_SIZE
+      int "favicon.ico GET response buffer size"
+      range 1 8192
+      default 256
+      help
+        Size of the buffer used for the response to a GET request for the
+        favicon.ico file, which is requested alongside the base path.
   endmenu
   menu "SPI configuration"
     config HW_SPI_HANDSHAKE
@@ -187,7 +185,7 @@ menu "HTTP-WiFi configuration"
       depends on HW_ENABLE_STATIC_PATTERN
       int "Static pattern array size"
       range 1 32
-      default 8
+      default 4
       help
         Number of static pattern structs to be able to send grouped together 
         at one time. Each pattern data transmission will have a metadata struct

@@ -46,7 +46,7 @@ menu "NeoPixel configuration"
       depends on NP_ENABLE_STATIC_PATTERN
       int "Static pattern array size"
       range 1 32
-      default 8
+      default 4
       help
         Number of static pattern structs to be able to receive grouped together 
         at one time. Each pattern data transmission will have a metadata struct

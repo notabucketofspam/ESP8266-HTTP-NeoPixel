@@ -7,6 +7,9 @@ extern "C" {
 
 #include <stddef.h>
 #include <stdint.h>
+#include <stdlib.h>
+#include <string.h>
+#include <stdio.h>
 
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
@@ -28,7 +31,7 @@ extern "C" {
  * Concise way of starting the WiFi
  * Uses the Kconfig values for the static IP address if enabled, among other things.
  */
-void vHwSetupWifi(void);
+void vHwWifiSetup(void);
 
 #ifdef __cplusplus
 }

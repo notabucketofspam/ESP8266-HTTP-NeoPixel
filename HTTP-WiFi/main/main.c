@@ -50,18 +50,19 @@ void app_main(void) {
   xHttpAndSpiEventGroupHandle = xEventGroupCreate();
   #if CONFIG_HW_ENABLE_DYNAMIC_PATTERN
     xHttpToSpiStreamBufferHandle = xStreamBufferCreate(CONFIG_HW_NEOPIXEL_COUNT * sizeof(struct xHwDynamicData),
-    HW_DATA_CHUNK_SIZE);
+    HW_SPI_DATA_CHUNK_SIZE);
   #endif
-  vHwSetupWifi();
+  vHwWifiSetup();
   xTaskCreate(vHwSpiMasterWriteTask, "vHwSpiMasterWriteTask", 2048, NULL, 4, &xSpiWriteTaskHandle);
-  vHwSetupSpi();
+  vHwSpiSetup();
+  vHwHttpSetup();
 //  xTaskCreate(vHwPrintIpTask, "vHwPrintIpTask", 2048, NULL, 3, NULL);
-  xTaskCreate(vHwPrintTimeTask, "vHwPrintTimeTask", 2048, NULL, 3, NULL);
+//  xTaskCreate(vHwPrintTimeTask, "vHwPrintTimeTask", 2048, NULL, 3, NULL);
   vTaskDelay(1000 / portTICK_PERIOD_MS);
 //  xTaskCreate(test_spi_pattern_task, "test_spi_pattern_task", 2048, NULL, 3, &xHttpServerTaskHandle);
 //  xTaskCreate(test_spi_pattern_array_task, "test_spi_pattern_array_task", 2048, NULL, 3, &xHttpServerTaskHandle);
 //  xTaskCreate(vHwTestSpiDynamicTask, "vHwTestSpiDynamicTask", 2048, NULL, 3, &xHttpServerTaskHandle);
 //  xTaskCreate(vHwTestSpiDynamicTaskTwo, "vHwTestSpiDynamicTaskTwo", 2048, NULL, 3, &xHttpServerTaskHandle);
   xTaskCreate(vHwTestSpiDynamicTaskThree, "vHwTestSpiDynamicTaskThree", 2048, NULL, 3, &xHttpServerTaskHandle);
-  ESP_LOGV(__ESP_FILE__, "app_main done");
+  ESP_LOGD(__ESP_FILE__, "app_main done");
 }

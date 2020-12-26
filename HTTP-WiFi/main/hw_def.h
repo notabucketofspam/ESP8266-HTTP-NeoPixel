@@ -15,12 +15,12 @@ extern "C" {
 /*
  * Max size of a single SPI transfer on the ESP8266
  */
-#define HW_DATA_CHUNK_SIZE (64)
+#define HW_SPI_DATA_CHUNK_SIZE (64)
 /*
  * Useful for getting the minimum number of data chunks needed to transmit some stuff
  * Primarily used with sizeof() for structs and xStreamBufferBytesAvailable() for the dynamic data stream buffer
  */
-#define HW_DATA_CHUNK_COUNT(x) (((x) + (HW_DATA_CHUNK_SIZE - 1)) / HW_DATA_CHUNK_SIZE)
+#define HW_SPI_DATA_CHUNK_COUNT(x) (((x) + (HW_SPI_DATA_CHUNK_SIZE - 1)) / HW_SPI_DATA_CHUNK_SIZE)
 /*
  * Bits used by the HTTP and SPI event group
  */
@@ -60,14 +60,14 @@ struct xHwMessageMetadata {
   enum xHwMessageType xType;
 };
 /*
- * A struct for assigning a pattern to a segment of the NeoPixel strip
+ * A struct for assigning a pattern to a segment of the NeoPixel strip.
  * Note that it's possible to have different sections of the strip have different patterns,
- * so long as you send multiple queue messages in a row
+ * so long as you send multiple queue messages in a row.
  */
 struct xHwStaticData {
   enum xHwPattern xPattern;
   uint16_t usPixelIndexStart; // Inclusive, since it's zero-indexed
-  uint16_t usPixelIndexEnd; // Also inclusive for the same reason
+  uint16_t usPatternLength; // Also inclusive for the same reason
   uint32_t ulDelay; // In milliseconds; used to control the speed of effects
   uint32_t ulColor; // Mostly used for fill color and whatnot
 };

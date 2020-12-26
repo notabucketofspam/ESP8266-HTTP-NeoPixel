@@ -55,7 +55,9 @@ void IRAM_ATTR vDynamicDataProcessTask(void *arg) {
     if (xStreamBufferBytesAvailable(xSpiStreamBufferHandle) > 0) {
       xStreamBufferReset(xSpiStreamBufferHandle);
     }
+    vPortEnterCritical();
     anp_show(pxAnpStrip);
+    vPortExitCritical();
 //    ESP_LOGI(__ESP_FILE__, "heap free: %u", esp_get_free_heap_size());
     xEventGroupSetBits(xSpiAndAnpEventGroupHandle, NP_BIT_ANP_DYNAMIC_END);
 //    ESP_LOGI(__ESP_FILE__, "Task complete");

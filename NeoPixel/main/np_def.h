@@ -62,7 +62,7 @@ struct xNpMessageMetadata {
 struct xNpStaticData {
   enum xNpPattern xPattern;
   uint16_t usPixelIndexStart; // Inclusive, since it's zero-indexed
-  uint16_t usPixelIndexEnd; // Also inclusive for the same reason
+  uint16_t usPatternLength; // Also inclusive for the same reason
   uint32_t ulDelay; // In milliseconds; used to control the speed of effects
   uint32_t ulColor; // Mostly used for fill ulColor and whatnot
 };

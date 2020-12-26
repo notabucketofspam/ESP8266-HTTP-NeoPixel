@@ -5,11 +5,22 @@
 extern "C" {
 #endif
 
+#include <stddef.h>
+#include <stdio.h>
+#include <stdbool.h>
+#include <string.h>
+
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
 #include "freertos/event_groups.h"
 #include "freertos/queue.h"
 #include "freertos/stream_buffer.h"
+
+#include "esp_http_server.h"
+#include "esp_spiffs.h"
+#include "esp_log.h"
+#include "esp_err.h"
+#include "jsmn.h"
 
 #include "hw_def.h"
 
@@ -20,7 +31,7 @@ extern TaskHandle_t xHttpServerTaskHandle;
 /*
  * Simplifies things in app_main()
  */
-void vHwSetupHttp(void);
+void vHwHttpSetup(void);
 
 #ifdef __cplusplus
 }

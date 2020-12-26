@@ -63,12 +63,12 @@ static void IRAM_ATTR spi_master_transmit(enum spi_master_mode direction, uint32
   switch (direction) {
     case SPI_WRITE:
       cmd = SPI_MASTER_WRITE_DATA_TO_SLAVE_CMD;
-      transmission.bits.mosi = 8 * HW_DATA_CHUNK_SIZE; // 8-bit by 64-byte
+      transmission.bits.mosi = 8 * HW_SPI_DATA_CHUNK_SIZE; // 8-bit by 64-byte
       transmission.mosi = data; // Not &data because data is already a pointer
       break;
     case SPI_READ:
       cmd = SPI_MASTER_READ_DATA_FROM_SLAVE_CMD;
-      transmission.bits.miso = 8 * HW_DATA_CHUNK_SIZE;
+      transmission.bits.miso = 8 * HW_SPI_DATA_CHUNK_SIZE;
       transmission.miso = data;
       break;
     default:
@@ -105,7 +105,7 @@ static void IRAM_ATTR gpio_isr_handler(void *arg) {
 //  ESP_LOGI(__ESP_FILE__, "delay: %"PRIu32, pattern_data->delay);
 //  ESP_LOGI(__ESP_FILE__, "color: %"PRIu32, pattern_data->color);
 //}
-void vHwSetupSpi(void) {
+void vHwSpiSetup(void) {
   gpio_config_t io_config = HW_GPIO_CONFIG_DEFAULT(CONFIG_HW_SPI_HANDSHAKE);
   gpio_config(&io_config);
   gpio_install_isr_service(0);
@@ -114,11 +114,14 @@ void vHwSetupSpi(void) {
   spi_init(HSPI_HOST, &spi_config);
 }
 void IRAM_ATTR vHwSpiMasterWriteTask(void *arg) {
-  // Divide by four because a uint32_t is 4-bytes, and 64-bytes is the max supported by ESP8266 SPI
-  static uint32_t pulDataChunk[HW_DATA_CHUNK_SIZE / 4];
+  // Divide by four because a uint32_t is 4-bytes, and 64-bytes is the max
+  // supported by ESP8266 SPI
+  static uint32_t pulDataChunk[HW_SPI_DATA_CHUNK_SIZE / 4];
   memset(pulDataChunk, 0x00, sizeof(pulDataChunk));
   static struct xHwMessage *pxMessageBuffer;
-  const uint32_t ulDataChunkCountMetadata = HW_DATA_CHUNK_COUNT(sizeof(struct xHwMessageMetadata));
+  // I don't know why it isn't +1 at the end here but it's +1 at the end
+  // elsewhere (i.e. stream buffer transmit section).
+  const uint32_t ulDataChunkCountMetadata = HW_SPI_DATA_CHUNK_COUNT(sizeof(struct xHwMessageMetadata));
   for (;;) {
     xEventGroupWaitBits(xHttpAndSpiEventGroupHandle, HW_BIT_SPI_TRANS_START, pdTRUE, pdTRUE, portMAX_DELAY);
 //    ESP_LOGI(__ESP_FILE__, "Task resume");
@@ -130,7 +133,7 @@ void IRAM_ATTR vHwSpiMasterWriteTask(void *arg) {
           // Classic way of transferring data, uncompressed with only one static pattern per transmission
           ulTaskNotifyTake(pdTRUE, 0);
           // Below: number of chunks to send, in case the relevant struct is larger than 64-bytes
-          const uint32_t data_chunk_count_pattern = HW_DATA_CHUNK_COUNT(sizeof(struct xHwStaticData));
+          const uint32_t data_chunk_count_pattern = HW_SPI_DATA_CHUNK_COUNT(sizeof(struct xHwStaticData));
           spi_master_send_length((ulDataChunkCountMetadata + data_chunk_count_pattern) * sizeof(pulDataChunk));
           ulTaskNotifyTake(pdTRUE, portMAX_DELAY);
           // Send pxMetadata, letting the NeoPixel device what else it's about to receive
@@ -164,7 +167,7 @@ void IRAM_ATTR vHwSpiMasterWriteTask(void *arg) {
         #if CONFIG_HW_ENABLE_STATIC_PATTERN & 0
           // Compressed transfer, hopefully more efficient
           ulTaskNotifyTake(pdTRUE, 0);
-          spi_master_send_length(HW_DATA_CHUNK_COUNT((sizeof(struct xHwStaticData)) +
+          spi_master_send_length(HW_SPI_DATA_CHUNK_COUNT((sizeof(struct xHwStaticData)) +
             (pxMessageBuffer->pattern_data_array_length * sizeof(struct xHwStaticData))) * sizeof(pulDataChunk));
           ulTaskNotifyTake(pdTRUE, portMAX_DELAY);
           uint32_t data_chunk_position = 0;
@@ -188,7 +191,7 @@ void IRAM_ATTR vHwSpiMasterWriteTask(void *arg) {
           }
           // Send pattern data, pretty much the exact same thing
           const uint32_t data_chunk_count_pattern_array =
-            HW_DATA_CHUNK_COUNT(pxMessageBuffer->pattern_data_array_length * sizeof(struct xHwStaticData));
+            HW_SPI_DATA_CHUNK_COUNT(pxMessageBuffer->pattern_data_array_length * sizeof(struct xHwStaticData));
           for (uint32_t data_chunk_index = 0; data_chunk_index < data_chunk_count_pattern_array; ++data_chunk_index) {
             uint32_t data_transmission_amount = (uint32_t) fminf(sizeof(pulDataChunk),
               (pxMessageBuffer->pattern_data_array_length * sizeof(struct xHwStaticData)) - (data_chunk_index *
@@ -229,14 +232,15 @@ void IRAM_ATTR vHwSpiMasterWriteTask(void *arg) {
           uint32_t ulInitialStreamBufferBytes =
             xStreamBufferBytesAvailable(*pxMessageBuffer->pxStreamBufferHandle);
 //          ESP_LOGI(__ESP_FILE__, "ulInitialStreamBufferBytes %u", ulInitialStreamBufferBytes);
-          uint32_t ulSpiSendLength = HW_DATA_CHUNK_COUNT(sizeof(struct xHwMessageMetadata) +
+          uint32_t ulSpiSendLength = HW_SPI_DATA_CHUNK_COUNT(sizeof(struct xHwMessageMetadata) +
             ulInitialStreamBufferBytes) * sizeof(pulDataChunk);
 //          ESP_LOGI(__ESP_FILE__, "ulSpiSendLength %u", ulSpiSendLength);
           spi_master_send_length(ulSpiSendLength);
-//          ESP_LOGI(__ESP_FILE__, "send length %u", HW_DATA_CHUNK_COUNT(sizeof(struct xHwStaticData) +
+//          ESP_LOGI(__ESP_FILE__, "send length %u", HW_SPI_DATA_CHUNK_COUNT(sizeof(struct xHwStaticData) +
 //            ulInitialStreamBufferBytes) * sizeof(pulDataChunk));
           ulTaskNotifyTake(pdTRUE, portMAX_DELAY);
-          // Hold the current index within pulDataChunk of where the data stops; rolls over to zero every 64-bytes
+          // Hold the current index within pulDataChunk of where the data
+          // stops; rolls over to zero every 64-bytes
 //          uint32_t ulDataChunkPosition = 0;
           struct {
             uint32_t bValue: 6;
@@ -266,12 +270,12 @@ void IRAM_ATTR vHwSpiMasterWriteTask(void *arg) {
             }
           }
 //          struct xHwDynamicData xDynamicData;
-          uint32_t ulDataChunkCountStreamBuffer = HW_DATA_CHUNK_COUNT(ulInitialStreamBufferBytes);
+          // I don't know why it's plus one at the end.
+          uint32_t ulDataChunkCountStreamBuffer = HW_SPI_DATA_CHUNK_COUNT(ulInitialStreamBufferBytes) + 1;
 //          uint32_t ulDynamicDataIndex = ulInitialStreamBufferBytes / sizeof(struct xHwDynamicData);
           uint32_t ulRemainingStreamBufferBytes = ulInitialStreamBufferBytes;
           // Send the dynamic pattern data itself
-          // No, I don't know why it's plus one in the middle, stop asking.
-          for (uint32_t ulDataChunkIndex = 0; ulDataChunkIndex < ulDataChunkCountStreamBuffer + 1; ++ulDataChunkIndex) {
+          for (uint32_t ulDataChunkIndex = 0; ulDataChunkIndex < ulDataChunkCountStreamBuffer; ++ulDataChunkIndex) {
             // Minimum data to transmit; will max out at sizeof(pulDataChunk)
             uint32_t ulDataTransmitAmount = (uint32_t) fminf(sizeof(pulDataChunk) - ulDataChunkPosition.bValue,
               ulRemainingStreamBufferBytes);

@@ -2,10 +2,15 @@
 
 Making / flashing the SPIFFS image:
 
-- `./makemkspiffs.sh` (this only needs to be run once)
-- `make flash`
-- `./flashspiffs.sh`
-- `make app-flash`
+- First time:
+  - `./makemkspiffs.sh`
+  - `make erase_flash`
+- After any time `make erase_flash` is executed:
+  - `make flash`
+  - Wait for SPIFFS to finish formatting
+  - `./flashspiffs.sh`
+- Any other time:
+  - `make app-flash`
 
 Other notes:
 

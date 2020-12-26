@@ -42,7 +42,7 @@ extern TaskHandle_t xSpiWriteTaskHandle;
  * An easier way to set up SPI-specific things, so that app_main() doesn't get bloated and unreadable.
  * This function assumes a bunch of default values, but allows for Kconfig things to be set
  */
-void vHwSetupSpi(void);
+void vHwSpiSetup(void);
 /*
  * Main task for sending data to the NeoPixel device.
  * Automatically suspends itself upon writing, and can only be resumed by the HTTP task.
