@@ -94,7 +94,7 @@ void vNpSetupSpi(void) {
   spi_config_t spi_config = NP_SPI_CONFIG_DEFAULT(spi_event_callback);
   spi_init(HSPI_HOST, &spi_config);
 }
-void IRAM_ATTR vNpSpiSlaveReadTask(void *arg) {
+void IRAM_ATTR vNpSpiSecondaryReadTask(void *arg) {
   // refer to hw_spi.h for some more documentation
 //  static uint32_t pulDataChunk[NP_DATA_CHUNK_SIZE / 4];
 //  memset(pulDataChunk, 0x00, sizeof(pulDataChunk));

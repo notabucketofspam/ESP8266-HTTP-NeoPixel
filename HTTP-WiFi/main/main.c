@@ -53,7 +53,7 @@ void app_main(void) {
     HW_SPI_DATA_CHUNK_SIZE);
   #endif
   vHwWifiSetup();
-  xTaskCreate(vHwSpiMasterWriteTask, "vHwSpiMasterWriteTask", 2048, NULL, 4, &xSpiWriteTaskHandle);
+  xTaskCreate(vHwSpiPrimaryWriteTask, "vHwSpiPrimaryWriteTask", 2048, NULL, 4, &xSpiWriteTaskHandle);
   vHwSpiSetup();
   vHwHttpSetup();
 //  xTaskCreate(vHwPrintIpTask, "vHwPrintIpTask", 2048, NULL, 3, NULL);

@@ -106,13 +106,6 @@ menu "HTTP-WiFi configuration"
         Size of the buffer used for the response to a GET request for the
         index.html file, or more accurately for the base path which displays 
         said file (since index.html redirects to the base path).
-    config HW_FAVICON_PNG_GET_RESP_BUF_SIZE
-      int "favicon.png GET response buffer size"
-      range 1 8192
-      default 256
-      help
-        Size of the buffer used for the response to a GET request for the
-        favicon.png file, which is requested alongside the base path.
     config HW_FAVICON_ICO_GET_RESP_BUF_SIZE
       int "favicon.ico GET response buffer size"
       range 1 8192

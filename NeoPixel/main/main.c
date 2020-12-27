@@ -53,7 +53,7 @@ void app_main(void) {
   #endif
   xTaskCreate(vDynamicDataProcessTask, "vDynamicDataProcessTask", 2048, NULL, 5, &xDynamicDataTaskHandle);
   vNpSetupAnp();
-  xTaskCreate(vNpSpiSlaveReadTask, "xNpSpiSlaveReadTask", 2048, NULL, 4, &xSpiReadTaskHandle);
+  xTaskCreate(vNpSpiSecondaryReadTask, "xNpSpiSecondaryReadTask", 2048, NULL, 4, &xSpiReadTaskHandle);
   // SPI setup has to happen after the task has started because the event
   // callback makes use of task notifications
   vNpSetupSpi();

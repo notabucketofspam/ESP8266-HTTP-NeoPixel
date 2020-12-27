@@ -113,7 +113,7 @@ void vHwSpiSetup(void) {
   spi_config_t spi_config = HW_SPI_CONFIG_DEFAULT(CONFIG_HW_SPI_CLK_DIV);
   spi_init(HSPI_HOST, &spi_config);
 }
-void IRAM_ATTR vHwSpiMasterWriteTask(void *arg) {
+void IRAM_ATTR vHwSpiPrimaryWriteTask(void *arg) {
   // Divide by four because a uint32_t is 4-bytes, and 64-bytes is the max
   // supported by ESP8266 SPI
   static uint32_t pulDataChunk[HW_SPI_DATA_CHUNK_SIZE / 4];

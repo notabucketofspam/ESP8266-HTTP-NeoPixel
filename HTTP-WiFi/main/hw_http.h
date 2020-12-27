@@ -9,6 +9,8 @@ extern "C" {
 #include <stdio.h>
 #include <stdbool.h>
 #include <string.h>
+#include <stdint.h>
+#include <stdlib.h>
 
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"

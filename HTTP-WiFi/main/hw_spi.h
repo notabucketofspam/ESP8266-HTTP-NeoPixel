@@ -49,7 +49,7 @@ void vHwSpiSetup(void);
  * Due to this suspension, if dynamic pattern data is provided, it must be fed into the stream buffer in a large chunk,
  * so that said buffer doesn't run out and cause incomplete communication.
  */
-void IRAM_ATTR vHwSpiMasterWriteTask(void *arg);
+void IRAM_ATTR vHwSpiPrimaryWriteTask(void *arg);
 
 #ifdef __cplusplus
 }

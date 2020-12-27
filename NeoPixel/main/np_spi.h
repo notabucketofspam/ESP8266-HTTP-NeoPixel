@@ -43,7 +43,7 @@ void vNpSetupSpi(void);
 /*
  * Main task for receiving data from the HTTP-WiFi device.
  */
-void IRAM_ATTR vNpSpiSlaveReadTask(void *arg);
+void IRAM_ATTR vNpSpiSecondaryReadTask(void *arg);
 
 #ifdef __cplusplus
 }
