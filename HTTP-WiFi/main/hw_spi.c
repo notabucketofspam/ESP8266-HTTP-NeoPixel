@@ -287,7 +287,7 @@ void IRAM_ATTR vHwSpiPrimaryWriteTask(void *arg) {
 //            memcpy(&xDynamicData, (void *) (pulDataChunk) + ulDataChunkPosition.bValue,
 //              sizeof(struct xHwDynamicData));
 //            ESP_LOGI(__ESP_FILE__, "pixel %u, red %u, green %u, blue%u", xDynamicData.ulPixelIndex,
-//              xDynamicData.ulColor >> 16 & 0xFF, xDynamicData.ulColor >>  8 & 0xFF, xDynamicData.ulColor & 0xFF);
+//              xDynamicData.ulColour >> 16 & 0xFF, xDynamicData.ulColour >>  8 & 0xFF, xDynamicData.ulColour & 0xFF);
             ulDataChunkPosition.bValue += ulDataTransmitAmount;
 //            ESP_LOGI(__ESP_FILE__, "ulDataChunkPosition in dynamic: %u", ulDataChunkPosition.bValue);
             ulRemainingStreamBufferBytes -= ulDataTransmitAmount;

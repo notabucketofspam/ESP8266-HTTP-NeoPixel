@@ -46,10 +46,10 @@ void IRAM_ATTR vDynamicDataProcessTask(void *arg) {
         (((uint32_t *) &xDynamicDataBuffer)[1] ^ UINT32_MAX))) {
         break;
       }
-      anp_setPixelColor_C(pxAnpStrip, xDynamicDataBuffer.ulPixelIndex, xDynamicDataBuffer.ulColor);
+      anp_setPixelColor_C(pxAnpStrip, xDynamicDataBuffer.ulPixelIndex, xDynamicDataBuffer.ulColour);
 //      ESP_LOGI(__ESP_FILE__, "pixel %u, red %u, green %u, blue%u", xDynamicDataBuffer.ulPixelIndex,
-//        xDynamicDataBuffer.ulColor >> 16 & 0xFF, xDynamicDataBuffer.ulColor >>  8 & 0xFF,
-//        xDynamicDataBuffer.ulColor & 0xFF);
+//        xDynamicDataBuffer.ulColour >> 16 & 0xFF, xDynamicDataBuffer.ulColour >>  8 & 0xFF,
+//        xDynamicDataBuffer.ulColour & 0xFF);
     }
     // Clear the stream buffer of the remaining garbage bytes
     if (xStreamBufferBytesAvailable(xSpiStreamBufferHandle) > 0) {

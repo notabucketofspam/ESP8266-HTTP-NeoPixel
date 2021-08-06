@@ -18,7 +18,7 @@ static EventGroupHandle_t xWifiEventGroup = NULL;
  * xWifiEventGroup gets deleted at the end of vHwSetupWifi(), so we need a flag
  * to let event_callback() know when it's ok to use xEventGroupSetBits()
  */
-static BaseType_t xSetupWifiDone = pdFALSE;
+static BaseType_t xWifiSetupDone = pdFALSE;
 /*
  * Function prototypes
  */
@@ -101,7 +101,7 @@ void vHwWifiSetup(void) {
   if (xWifiBits != (HW_BIT_WIFI_STA_START | HW_BIT_WIFI_STA_CONNECT | HW_BIT_WIFI_IP_GET)) {
     esp_restart();
   }
-  xSetupWifiDone = pdTRUE;
+  xWifiSetupDone = pdTRUE;
   // At present, event_handler() remains registered on the off-chance that the
   // device loses WiFi connection for whatever reason so that it may reconnect.
   // This behaviour can be changed in menuconfig
@@ -118,13 +118,13 @@ static void event_handler(void* arg, esp_event_base_t event_base, int32_t event_
   #endif
   if (event_base == WIFI_EVENT && event_id == WIFI_EVENT_STA_START) {
     // Connect once WiFi has fully started
-    if (xSetupWifiDone == pdFALSE) {
+    if (xWifiSetupDone == pdFALSE) {
       xEventGroupSetBits(xWifiEventGroup, HW_BIT_WIFI_STA_START);
     }
     ESP_LOGD(__ESP_FILE__, "STA start");
     esp_wifi_connect();
   } else if (event_base == WIFI_EVENT && event_id == WIFI_EVENT_STA_CONNECTED) {
-    if (xSetupWifiDone == pdFALSE) {
+    if (xWifiSetupDone == pdFALSE) {
       xEventGroupSetBits(xWifiEventGroup, HW_BIT_WIFI_STA_CONNECT);
     }
     ESP_LOGD(__ESP_FILE__, "STA connect");
@@ -159,12 +159,12 @@ static void event_handler(void* arg, esp_event_base_t event_base, int32_t event_
         if (xDhcpcStatus == TCPIP_ADAPTER_DHCP_STARTED) {
           tcpip_adapter_dhcpc_stop(TCPIP_ADAPTER_IF_STA);
           tcpip_adapter_set_ip_info(TCPIP_ADAPTER_IF_STA, &xIpInfoSta);
-          if (xSetupWifiDone == pdFALSE) {
+          if (xWifiSetupDone == pdFALSE) {
             xEventGroupSetBits(xWifiEventGroup, HW_BIT_WIFI_IP_GET);
           }
         }
       #else
-        if (xSetupWifiDone == pdFALSE) {
+        if (xWifiSetupDone == pdFALSE) {
           xEventGroupSetBits(xWifiEventGroup, HW_BIT_WIFI_IP_GET);
         }
       #endif

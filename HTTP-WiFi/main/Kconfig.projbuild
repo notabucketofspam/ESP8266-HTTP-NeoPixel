@@ -104,7 +104,7 @@ menu "HTTP-WiFi configuration"
       default 256
       help
         Size of the buffer used for the response to a GET request for the
-        index.html file, or more accurately for the base path which displays 
+        index.html file, or more accurately for the base path which displays
         said file (since index.html redirects to the base path).
     config HW_FAVICON_ICO_GET_RESP_BUF_SIZE
       int "favicon.ico GET response buffer size"
@@ -113,6 +113,13 @@ menu "HTTP-WiFi configuration"
       help
         Size of the buffer used for the response to a GET request for the
         favicon.ico file, which is requested alongside the base path.
+    config HW_HTTPD_REQ_RECV_BUF_SIZE
+      int "Form submission POST request receive buffer size"
+      range 1 8192
+      default 256
+      help
+        Size of the buffer used for reading content data from a POST request,
+        which will subsequently be parsed into pattern commands.
   endmenu
   menu "SPI configuration"
     config HW_SPI_HANDSHAKE

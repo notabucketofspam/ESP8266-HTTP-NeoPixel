@@ -46,7 +46,7 @@ enum xHwMessageType {
  */
 enum xHwPattern {
   NO_PATTERN = 0, // Used to turn off the strip
-  FILL_COLOR,
+  FILL_COLOUR,
   THEATRE_CHASE,
   RAINBOW_SOLID, // Strip changes color uniformly
   RAINBOW_WAVE // Strip changes color in a shifting gradient
@@ -67,16 +67,16 @@ struct xHwMessageMetadata {
 struct xHwStaticData {
   enum xHwPattern xPattern;
   uint16_t usPixelIndexStart; // Inclusive, since it's zero-indexed
-  uint16_t usPatternLength; // Also inclusive for the same reason
+  uint16_t usPatternLength;
   uint32_t ulDelay; // In milliseconds; used to control the speed of effects
-  uint32_t ulColor; // Mostly used for fill color and whatnot
+  uint32_t ulColour; // Mostly used for fill color and whatnot
 };
 /*
  * Packed structure for transferring dynamic pattern data
  */
 struct xHwDynamicData {
   uint32_t ulPixelIndex;
-  uint32_t ulColor; // This could've been 24-bit but then that would've negated RGBW support
+  uint32_t ulColour; // This could've been 24-bit but then that would've negated RGBW support
 };
 /*
  * The message for communicating between the HTTP server and the SPI master task

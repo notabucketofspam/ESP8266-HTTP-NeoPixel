@@ -19,11 +19,11 @@ void test_spi_pattern_task(void *arg) {
     struct xHwStaticData *test_pattern_data_red = malloc(sizeof(struct xHwStaticData));
     test_pattern_data_red->bVal = 0;
     test_pattern_data_red->bCmd = 0;
-    test_pattern_data_red->bPattern = FILL_COLOR;
+    test_pattern_data_red->bPattern = FILL_COLOUR;
     test_pattern_data_red->bPixelIndexStart = 0;
     test_pattern_data_red->bPixelIndexEnd = 29;
     test_pattern_data_red->ulDelay = 0;
-    test_pattern_data_red->ulColor = 0x00FF0000;
+    test_pattern_data_red->ulColour = 0x00FF0000;
     test_message_red->pattern_data = test_pattern_data_red;
     xQueueSendToBack(xHttpToSpiQueueHandle, (void *) &test_message_red, portMAX_DELAY);
     xEventGroupSetBits(xHttpAndSpiEventGroupHandle, HW_BIT_SPI_TRANS_START);
@@ -42,11 +42,11 @@ void test_spi_pattern_task(void *arg) {
     struct xHwStaticData *test_pattern_data_green = malloc(sizeof(struct xHwStaticData));
     test_pattern_data_green->bVal = 0;
     test_pattern_data_green->bCmd = 0;
-    test_pattern_data_green->bPattern = FILL_COLOR;
+    test_pattern_data_green->bPattern = FILL_COLOUR;
     test_pattern_data_green->bPixelIndexStart = 0;
     test_pattern_data_green->bPixelIndexEnd = 29;
     test_pattern_data_green->ulDelay = 0;
-    test_pattern_data_green->ulColor = 0x0000FF00;
+    test_pattern_data_green->ulColour = 0x0000FF00;
     test_message_green->pattern_data = test_pattern_data_green;
     xQueueSendToBack(xHttpToSpiQueueHandle, (void *) &test_message_green, portMAX_DELAY);
     xEventGroupSetBits(xHttpAndSpiEventGroupHandle, HW_BIT_SPI_TRANS_START);
@@ -82,9 +82,9 @@ void vHwTestSpiDynamicTask(void *arg) {
         // in fact that's what it gets converted to on the NeoPixel device
         struct xHwDynamicData *pxDynamicData = malloc(sizeof(struct xHwDynamicData));
         pxDynamicData->ulPixelIndex = ulPixelIndex;
-        pxDynamicData->ulColor = anp_ColorHSV(usPixelHue, 255, 255);
+        pxDynamicData->ulColour = anp_ColorHSV(usPixelHue, 255, 255);
 //        ESP_LOGI(__ESP_FILE__, "pixel %u, red %u, green %u, blue%u", pxDynamicData->ulPixelIndex,
-//          pxDynamicData->ulColor >> 16 & 0xFF, pxDynamicData->ulColor >>  8 & 0xFF, pxDynamicData->ulColor & 0xFF);
+//          pxDynamicData->ulColour >> 16 & 0xFF, pxDynamicData->ulColour >>  8 & 0xFF, pxDynamicData->ulColour & 0xFF);
         pxDynamicDataPointerArray[ulPixelIndex - usPixelIndexStart] = pxDynamicData;
         xStreamBufferSend(*pxTestMessage->pxStreamBufferHandle, (void *) pxDynamicData, sizeof(struct xHwDynamicData),
           portMAX_DELAY);
@@ -126,7 +126,7 @@ void test_spi_pattern_array_task(void *arg) {
     pattern_data_0->bPixelIndexStart = 0;
     pattern_data_0->bPixelIndexEnd = 7;
     pattern_data_0->ulDelay = 0;
-    pattern_data_0->ulColor = 0x00;
+    pattern_data_0->ulColour = 0x00;
     pattern_data_array[0] = pattern_data_0;
     // Red section
     struct xHwStaticData *pattern_data_1 = malloc(sizeof(struct xHwStaticData));
@@ -135,7 +135,7 @@ void test_spi_pattern_array_task(void *arg) {
     pattern_data_1->bPixelIndexStart = 8;
     pattern_data_1->bPixelIndexEnd = 15;
     pattern_data_1->ulDelay = 0;
-    pattern_data_1->ulColor = 0xFF << 16;
+    pattern_data_1->ulColour = 0xFF << 16;
     pattern_data_array[1] = pattern_data_1;
     // Green section
     struct xHwStaticData *pattern_data_2 = malloc(sizeof(struct xHwStaticData));
@@ -144,7 +144,7 @@ void test_spi_pattern_array_task(void *arg) {
     pattern_data_2->bPixelIndexStart = 16;
     pattern_data_2->bPixelIndexEnd = 23;
     pattern_data_2->ulDelay = 0;
-    pattern_data_2->ulColor = 0xFF << 8;
+    pattern_data_2->ulColour = 0xFF << 8;
     pattern_data_array[2] = pattern_data_2;
     // Blue section
     struct xHwStaticData *pattern_data_3 = malloc(sizeof(struct xHwStaticData));
@@ -153,7 +153,7 @@ void test_spi_pattern_array_task(void *arg) {
     pattern_data_3->bPixelIndexStart = 24;
     pattern_data_3->bPixelIndexEnd = 31;
     pattern_data_3->ulDelay = 0;
-    pattern_data_3->ulColor = 0xFF;
+    pattern_data_3->ulColour = 0xFF;
     pattern_data_array[3] = pattern_data_3;
     pxTestMessage->pattern_data_array_length = pattern_data_array_length;
     pxTestMessage->pattern_data_array = pattern_data_array;
@@ -192,9 +192,9 @@ void vHwTestSpiDynamicTaskTwo(void *arg) {
       // in fact that's what it gets converted to on the NeoPixel device
       struct xHwDynamicData xDynamicData;
       xDynamicData.ulPixelIndex = ulPixelIndex;
-      xDynamicData.ulColor = anp_Color_RGB(0, 127, 0);
+      xDynamicData.ulColour = anp_Color_RGB(0, 127, 0);
 //        ESP_LOGI(__ESP_FILE__, "pixel %u, red %u, green %u, blue%u", xDynamicData.ulPixelIndex,
-//          xDynamicData.ulColor >> 16 & 0xFF, xDynamicData.ulColor >>  8 & 0xFF, xDynamicData.ulColor & 0xFF);
+//          xDynamicData.ulColour >> 16 & 0xFF, xDynamicData.ulColour >>  8 & 0xFF, xDynamicData.ulColour & 0xFF);
 //      ESP_LOGI(__ESP_FILE__, "point c + %u", ulPixelIndex);
       pxDynamicDataPointerArray[ulPixelIndex - ulPixelIndexStart] = xDynamicData;
 //      ESP_LOGI(__ESP_FILE__, "point d + %u", ulPixelIndex);
@@ -243,10 +243,10 @@ void vHwTestSpiDynamicTaskThree(void *arg) {
       for (uint32_t ulPixelIndex = ulPixelIndexStart; ulPixelIndex < ulPixelIndexEnd + 1; ++ulPixelIndex) {
         struct xHwDynamicData *pxDynamicData = malloc(sizeof(struct xHwDynamicData));
         pxDynamicData->ulPixelIndex = ulPixelIndex;
-        pxDynamicData->ulColor = ulWheelColor((((ulPixelIndex * 0x0100) / (1 + ulPixelIndexEnd -
+        pxDynamicData->ulColour = ulWheelColor((((ulPixelIndex * 0x0100) / (1 + ulPixelIndexEnd -
           ulPixelIndexStart)) + ulWheelPosition) & 0xFF);
 //        ESP_LOGI(__ESP_FILE__, "pixel %u, red %u, green %u, blue%u", pxDynamicData->ulPixelIndex,
-//          pxDynamicData->ulColor >> 16 & 0xFF, pxDynamicData->ulColor >>  8 & 0xFF, pxDynamicData->ulColor & 0xFF);
+//          pxDynamicData->ulColour >> 16 & 0xFF, pxDynamicData->ulColour >>  8 & 0xFF, pxDynamicData->ulColour & 0xFF);
         pxDynamicDataPointerArray[ulPixelIndex - ulPixelIndexStart] = pxDynamicData;
         xStreamBufferSend(*pxTestMessage->pxStreamBufferHandle, (void *) pxDynamicData, sizeof(struct xHwDynamicData),
           portMAX_DELAY);

@@ -42,7 +42,7 @@ enum xNpMessageType {
  */
 enum xNpPattern {
   NO_PATTERN = 0, // Used to turn off the strip
-  FILL_COLOR,
+  FILL_COLOUR,
   THEATRE_CHASE,
   RAINBOW_SOLID, // Strip changes color uniformly
   RAINBOW_WAVE // Strip changes color in a shifting gradient
@@ -64,7 +64,7 @@ struct xNpStaticData {
   uint16_t usPixelIndexStart; // Inclusive, since it's zero-indexed
   uint16_t usPatternLength; // Also inclusive for the same reason
   uint32_t ulDelay; // In milliseconds; used to control the speed of effects
-  uint32_t ulColor; // Mostly used for fill ulColor and whatnot
+  uint32_t ulColour; // Mostly used for fill ulColour and whatnot
 };
 /*
  * Packed structure for receiving dynamic pattern data
@@ -72,7 +72,7 @@ struct xNpStaticData {
  */
 struct xNpDynamicData {
   uint32_t ulPixelIndex;
-  uint32_t ulColor;
+  uint32_t ulColour;
 };
 /*
  * The message for communicating between the HTTP server and the SPI master task

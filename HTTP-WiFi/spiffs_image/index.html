@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <html>
   <head>
+    <base target="_top">
     <title>
       ESP8266-HTTP-NeoPixel
     </title>
@@ -14,5 +15,122 @@
       More specifically, the HTTP-WiFi part.
     </h4>
     <hr>
+    <form id="submission-form" onsubmit="formSubmitHandler(this)">
+      <div>
+        <b>Message type</b>
+        <br>
+        <input id="message-type-static-input" name="message-type" type="radio"
+          value="static" />
+        <label for="message-type-static-input">Static pattern</label>
+        <br>
+        <input id="message-type-dynamic-input" name="message-type" type="radio"
+          value="dynamic" checked />
+        <label for="message-type-dynamic-input">Dynamic pattern</label>
+      </div>
+      <div id="message-type-static-div" style="display: none;">
+        <div>
+          <label for="static-pattern-select">Pattern</label>
+          <select id="static-pattern-select" name="static-pattern-select">
+            <option value="no-pattern">No pattern</option>
+            <option value="fill-colour">Fill colour</option>
+            <option value="theatre-chase">Theatre chase</option>
+            <option value="rainbow-solid">Rainbow solid</option>
+            <option value="rainbow-wave">Rainbow wave</option>
+          </select>
+        </div>
+        <div>
+          <label for="pixel-index-start-input">Pixel index start</label>
+          <input id="pixel-index-start-input" name="pixel-index-start-input" 
+            type="number" min="0" max="4095" value="0" />
+        </div>
+        <div>
+          <label for="pattern-length-input">Pattern length</label>
+          <input id="pattern-length-input" name="pattern-length-input" 
+            type="number" min="0" max="4096" value="0" />
+        </div>
+        <div>
+          <label for="delay-input">Delay</label>
+          <input id="delay-input" name="delay-input" type="number" min="0" 
+            max="65535" value="0" />
+        </div>
+        <div>
+          <label for="colour-input">Colour</label>
+          <input id="colour-input" name="colour-input" type="color" 
+            value="#000000" />
+        </div>
+      </div>
+      <div id="message-type-dynamic-div" style="display: block;">
+        <div>
+          <label for="dynamic-pattern-select">Pattern</label>
+          <select id="dynamic-pattern-select" name="dynamic-pattern-select">
+            <option value="dynamic-pattern-0">Dynamic pattern 0</option>
+            <option value="dynamic-pattern-1">Dynamic pattern 1</option>
+            <option value="dynamic-pattern-2">Dynamic pattern 2</option>
+            <option value="dynamic-pattern-3">Dynamic pattern 3</option>
+            <option value="dynamic-pattern-4">Dynamic pattern 4</option>
+            <option value="dynamic-pattern-5">Dynamic pattern 5</option>
+            <option value="dynamic-pattern-6">Dynamic pattern 6</option>
+            <option value="dynamic-pattern-7">Dynamic pattern 7</option>
+            <option value="dynamic-pattern-8">Dynamic pattern 8</option>
+            <option value="dynamic-pattern-9">Dynamic pattern 9</option>
+          </select>
+        </div>
+      </div>
+      <div>
+        <input id="submit-input" type="submit" value="Submit" />
+      </div>
+    </form>
+<script>
+// TODO: retrieve information from the device about NeoPixel count, persistent
+// state (maybe), other config, etc. for setting default form values and error checking.
+// Examples: aforementioned NeoPixel count, set delay to UINT32_MAX, change
+// dynamic pattern names to match what's written in the C source files (do this
+// for static as well maybe), also set displayed dynamic pattern count to match
+// C source, set sum of static pattern length and pixel index start to be less
+// than NeoPixel count
+// Also TODO: change whether or not static or dynamic is displayed based on config
+// Also TODO: use persistent state to show what sections are assigned to which
+// patterns, be those static or dynamic
+(function() {
+  document.getElementById("submission-form").addEventListener("submit", function(event) {
+    event.preventDefault();
+  });
+  document.getElementById("message-type-static-input").addEventListener("input", function(event) {
+    document.getElementById("message-type-static-div").style.display = "block";
+    document.getElementById("message-type-dynamic-div").style.display = "none";
+  });
+  document.getElementById("message-type-dynamic-input").addEventListener("input", function(event) {
+    document.getElementById("message-type-static-div").style.display = "none";
+    document.getElementById("message-type-dynamic-div").style.display = "block";
+  });
+})();
+function formSubmitHandler(form) {
+  let formData = new FormData(form);
+  let formEntries = "";
+  let pastFirstFormEntry = false;
+  for (entry of formData.entries()) {
+    if (document.getElementById(entry[0]) != null) {
+      if (document.getElementById(entry[0]).parentElement.parentElement.style.display === "block") {
+        if (pastFirstFormEntry) {
+          formEntries += "&";
+        } else {
+          pastFirstFormEntry = true;
+        }
+        formEntries += encodeURIComponent(entry[0]) + "=" + encodeURIComponent(entry[1]);
+      }
+    }
+  }
+  formEntries = formEntries.replace(/%23[0-9]{6}/g, function(match) {
+    return match.replace("%23", "0x00");
+  });
+  console.log(formEntries);
+  fetch("/", {
+    method: "POST",
+    body: formEntries
+  });
+  form.reset();
+  document.getElementById("message-type-dynamic-input").dispatchEvent(new Event("input"));
+} 
+</script>
   </body>
 </html>
